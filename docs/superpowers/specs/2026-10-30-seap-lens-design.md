@@ -244,7 +244,7 @@ The 1% threshold is a starting value. In the validated data, no file came near i
 
 1. **Data validation:** done. See the [report](../../data-validation.md).
 2. **Complete warehouse:** standardization and dbt run locally on DuckDB. Still to do: moving dbt to Athena, Airflow and Terraform.
-3. **Public dashboard:** built on a 548 KB extract and checked locally. Still to do: deployment. This is the first point where the project is complete enough to go on the CV.
+3. **Public dashboard:** done, at [seap-lens.streamlit.app](https://seap-lens.streamlit.app/), on a 548 KB extract.
 4. **ML model:** training, evaluation and scores.
 5. **Polish:** README, diagram, Airflow screenshots and main findings.
 
