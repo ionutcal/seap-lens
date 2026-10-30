@@ -1,0 +1,166 @@
+{
+ "validation": {
+  "selected": "logistic",
+  "train_rows": 232746,
+  "train_periods": [
+   2016,
+   2017,
+   2018,
+   2019,
+   2020
+  ],
+  "excluded_without_publication_date": 1006,
+  "variants": {
+   "mean_rate": {
+    "parameters": {},
+    "rows": 251019,
+    "base_rate": 0.24467470589875667,
+    "pr_auc": 0.3662923500640984,
+    "calibration_error": 0.026794259241599006,
+    "brier": 0.17599595717324207,
+    "pr_auc_per_procedure": 0.46136161799240466,
+    "procedures": 26959
+   },
+   "logistic": {
+    "parameters": {
+     "C": 0.1
+    },
+    "rows": 251019,
+    "base_rate": 0.24467470589875667,
+    "pr_auc": 0.41194388261825166,
+    "calibration_error": 0.01986366293480634,
+    "brier": 0.17237742448786395,
+    "pr_auc_per_procedure": 0.4981319407514039,
+    "procedures": 26959
+   },
+   "lightgbm": {
+    "parameters": {
+     "num_leaves": 31,
+     "min_child_samples": 200
+    },
+    "rows": 251019,
+    "base_rate": 0.24467470589875667,
+    "pr_auc": 0.41958710143361433,
+    "calibration_error": 0.02454994749440225,
+    "brier": 0.17133690300928067,
+    "pr_auc_per_procedure": 0.5241298825968013,
+    "procedures": 26959
+   }
+  }
+ },
+ "test": {
+  "selected": "logistic",
+  "parameters": {
+   "C": 0.1
+  },
+  "train_rows": 483765,
+  "model": {
+   "rows": 72569,
+   "base_rate": 0.28683046479901886,
+   "pr_auc": 0.45103988541087114,
+   "calibration_error": 0.015040069341766384,
+   "brier": 0.18883311167087644,
+   "pr_auc_per_procedure": 0.5408491561640607,
+   "procedures": 20003,
+   "pr_auc_low": 0.434325768117615,
+   "pr_auc_high": 0.46427150567757863
+  },
+  "baseline": {
+   "rows": 72569,
+   "base_rate": 0.28683046479901886,
+   "pr_auc": 0.4051978445407408,
+   "calibration_error": 0.019065351069815092,
+   "brier": 0.19427843673435682,
+   "pr_auc_per_procedure": 0.5066063270013766,
+   "procedures": 20003
+  }
+ },
+ "drift": {
+  "reference_2022": {
+   "procedures": 20003,
+   "psi": {
+    "cpv_group": 0.017,
+    "contract_type": 0.0006,
+    "procedure_type": 0.6395,
+    "authority_type": 0.0114,
+    "log_estimated_value": 0.0392,
+    "publication_month": 0.1134,
+    "log_history_contracts": 0.3376,
+    "history_single_share": 0.224
+   },
+   "above_warning": [
+    "log_history_contracts",
+    "procedure_type"
+   ]
+  },
+  "2023": {
+   "procedures": 29947,
+   "psi": {
+    "cpv_group": 0.1128,
+    "contract_type": 0.0746,
+    "procedure_type": 0.6299,
+    "authority_type": 0.0875,
+    "log_estimated_value": 0.2281,
+    "publication_month": 0.0163,
+    "log_history_contracts": 0.2352,
+    "history_single_share": 0.1448
+   },
+   "above_warning": [
+    "procedure_type"
+   ],
+   "mean_risk": 0.37058779833877725
+  },
+  "2024": {
+   "procedures": 32812,
+   "psi": {
+    "cpv_group": 0.222,
+    "contract_type": 0.0343,
+    "procedure_type": 0.6317,
+    "authority_type": 0.1843,
+    "log_estimated_value": 0.1971,
+    "publication_month": 0.0877,
+    "log_history_contracts": 0.1667,
+    "history_single_share": 0.1004
+   },
+   "above_warning": [
+    "procedure_type"
+   ],
+   "mean_risk": 0.3597293652398255
+  },
+  "2025": {
+   "procedures": 25911,
+   "psi": {
+    "cpv_group": 0.0867,
+    "contract_type": 0.0105,
+    "procedure_type": 0.6396,
+    "authority_type": 0.0511,
+    "log_estimated_value": 0.2,
+    "publication_month": 0.0339,
+    "log_history_contracts": 0.2206,
+    "history_single_share": 0.1512
+   },
+   "above_warning": [
+    "procedure_type"
+   ],
+   "mean_risk": 0.3684962850708409
+  },
+  "2026": {
+   "procedures": 17190,
+   "psi": {
+    "cpv_group": 0.0931,
+    "contract_type": 0.0149,
+    "procedure_type": 0.6432,
+    "authority_type": 0.0245,
+    "log_estimated_value": 0.2238,
+    "publication_month": 1.781,
+    "log_history_contracts": 0.2688,
+    "history_single_share": 0.1684
+   },
+   "above_warning": [
+    "log_history_contracts",
+    "procedure_type"
+   ],
+   "mean_risk": 0.36542718739388624
+  }
+ }
+}

@@ -1,0 +1,4 @@
+# Model training. Kept apart so the dashboard deployment stays light.
+lightgbm
+scikit-learn
+mlflow

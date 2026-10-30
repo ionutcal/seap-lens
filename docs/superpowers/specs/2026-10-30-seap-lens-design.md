@@ -176,17 +176,17 @@ Procedures without real competition, such as negotiation without a participation
 | Final fit | 2016–2021 | Used for the test run and for later scores |
 | Test | 2022 Q2–Q4 | Run once, at the end |
 
-- **Time split:** each unit belongs to the period of its first appearance, so a republished contract cannot reach both training and test.
-- **Variants compared:** a mean rate by CPV group and procedure type, logistic regression, and LightGBM. On the 2021 validation data, LightGBM is chosen only if its PR-AUC is at least 0.02 higher than logistic regression and its calibration is no worse. The same rule applies between logistic regression and the mean rate.
+- **Time split:** each contract belongs to the year its procedure first appeared, so neither a republished contract nor a later contract of the same framework can reach both training and test.
+- **Variants compared:** a mean rate by CPV group and procedure type, logistic regression, and LightGBM. On the 2021 validation data, LightGBM is chosen only if its PR-AUC is at least 0.02 higher than logistic regression and its calibration is no worse, with differences under 0.5 points treated as noise. The same rule applies between logistic regression and the mean rate.
 - **Metrics:** PR-AUC, because single-offer cases are the minority, and calibration, because a predicted 30% should mean about 30% in reality.
 - **No fixed performance threshold.** If the model does not beat the simple mean, that result is published and the simple variant stays.
 - **No periodic retraining.** No new labels exist after 2022, so the model is trained once and versioned. Monthly runs only score and monitor.
 
 ### Outputs
 
-- **Up to 2022:** the difference between actual and expected single-offer rates by authority. Only authorities with at least 30 units appear, each with a confidence interval.
+- **2021–2022:** the difference between actual and expected single-offer rates by authority, using only predictions on contracts the model had not seen. Only authorities with at least 30 contracts appear, each with a confidence interval, and only through a lookup with no ranking.
 - **From 2023:** estimated risk only, visibly marked as unvalidated. Scores are computed from initiation notices, before award.
-- **Monitoring:** accuracy cannot be measured after 2022. Input drift against the training data is tracked with PSI, and the dashboard shows a warning when PSI exceeds 0.25 on any feature.
+- **Monitoring:** accuracy cannot be measured after 2022. Input drift is tracked with PSI, per procedure, because notices are procedures and contract-level training data would look like drift. The dashboard shows which features exceed 0.25, with the 2022 test data as a reference.
 
 ### Fallback
 
@@ -245,7 +245,7 @@ The 1% threshold is a starting value. In the validated data, no file came near i
 1. **Data validation:** done. See the [report](../../data-validation.md).
 2. **Complete warehouse:** standardization and dbt run locally on DuckDB. Still to do: moving dbt to Athena, Airflow and Terraform.
 3. **Public dashboard:** done, at [seap-lens.streamlit.app](https://seap-lens.streamlit.app/), on a 548 KB extract.
-4. **ML model:** training, evaluation and scores.
+4. **ML model:** done. See the [results](../../model-results.md).
 5. **Polish:** README, diagram, Airflow screenshots and main findings.
 
 ## 11. Open questions

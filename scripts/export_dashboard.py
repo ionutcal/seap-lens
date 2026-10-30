@@ -6,8 +6,13 @@ import os
 from pathlib import Path
 
 import duckdb
+import pandas as pd
 
-OUTPUT = Path(__file__).resolve().parent.parent / "dashboard" / "data"
+ROOT = Path(__file__).resolve().parent.parent
+OUTPUT = ROOT / "dashboard" / "data"
+MODEL_DIR = ROOT / "data" / "model"
+RESULTS_DIR = ROOT / "docs" / "model"
+CALIBRATION_BINS = 10
 QUERIES = {
     "competition_by_county": "select * from mart_competition_by_county where year >= 2016",
     "competition_by_cpv": """
@@ -48,8 +53,45 @@ COUNTS = {
 }
 
 
+def out_of_sample_predictions() -> pd.DataFrame:
+    """Predictions for contracts each model had not seen: 2021 from validation, 2022 from the test."""
+    selected = json.loads((RESULTS_DIR / "validation_result.json").read_text())["selected"]
+    validation = pd.read_parquet(MODEL_DIR / "validation_predictions.parquet").rename(columns={selected: "prediction"})
+    test = pd.read_parquet(MODEL_DIR / "test_predictions.parquet")
+    columns = ["contract_key", "authority_cui", "period", "is_single_offer", "prediction"]
+    return pd.concat([validation[columns], test[columns]], ignore_index=True)
+
+
+def export_model_results() -> None:
+    predictions = out_of_sample_predictions()
+    (
+        predictions.assign(single=predictions.is_single_offer.astype(int))
+        .groupby(["authority_cui", "period"], as_index=False)
+        .agg(contracts=("single", "size"), single_offer_contracts=("single", "sum"), expected_single_offers=("prediction", "sum"))
+        .to_parquet(OUTPUT / "authority_expected.parquet", index=False)
+    )
+    test = pd.read_parquet(MODEL_DIR / "test_predictions.parquet")
+    bins = pd.cut(test.prediction, [i / CALIBRATION_BINS for i in range(CALIBRATION_BINS + 1)], include_lowest=True)
+    (
+        test.assign(single=test.is_single_offer.astype(float), bin=bins.astype(str))
+        .groupby("bin", as_index=False)
+        .agg(contracts=("single", "size"), predicted=("prediction", "mean"), actual=("single", "mean"))
+        .sort_values("predicted")
+        .to_parquet(OUTPUT / "calibration.parquet", index=False)
+    )
+    (
+        pd.read_parquet(MODEL_DIR / "notice_scores.parquet")
+        .groupby(["authority_cui", "year"], as_index=False)
+        .agg(notices=("estimated_risk", "size"), mean_risk=("estimated_risk", "mean"))
+        .to_parquet(OUTPUT / "authority_risk.parquet", index=False)
+    )
+    summary = {name: json.loads((RESULTS_DIR / f"{name}_result.json").read_text()) for name in ("validation", "test", "drift")}
+    (OUTPUT / "model_results.json").write_text(json.dumps(summary, indent=1) + "\n")
+
+
 def main() -> None:
     OUTPUT.mkdir(parents=True, exist_ok=True)
+    export_model_results()
     # Staging views read Parquet through paths relative to the dbt folder.
     os.chdir("dbt")
     connection = duckdb.connect("../data/warehouse.duckdb", read_only=True)

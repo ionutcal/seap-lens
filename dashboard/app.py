@@ -24,6 +24,19 @@ INDEPENDENCE = "Independent project, with no official link to SEAP, SICAP or any
 NOT_WRONGDOING = (
     "A single offer does not mean wrongdoing. It can have normal explanations, such as a highly specialized market."
 )
+FEATURE_NAMES = {
+    "cpv_group": "type of purchase",
+    "contract_type": "contract type",
+    "procedure_type": "procedure type",
+    "authority_type": "authority type",
+    "log_estimated_value": "estimated value",
+    "publication_month": "publication month",
+    "log_history_contracts": "authority history size",
+    "history_single_share": "authority single-offer history",
+}
+UNVALIDATED = (
+    "These scores are unvalidated. Bid counts stop after 2022, so nobody can check them against real outcomes."
+)
 SHARE_COLUMNS = ["single_offer_share", "share_low", "share_high", "market_share"]
 COLUMN_NAMES = {
     "year": "Year",
@@ -44,6 +57,8 @@ COLUMN_NAMES = {
     "supplier_name": "Supplier",
     "value_ron": "Value (RON)",
     "market_share": "Share (%)",
+    "notices": "Scored notices",
+    "mean_risk": "Mean estimated risk (%)",
 }
 GAPS = "Bid counts stop after 2022. 2019 Q2 and 2022 Q1 have none, because of how those files were published."
 
@@ -151,6 +166,96 @@ def authorities() -> None:
     st.caption("Vertical lines show the 95% confidence interval, which is wide when a year has few contracts. " + GAPS)
     table_view(rows[["year", "contracts", "single_offer_contracts", "single_offer_share", "share_low", "share_high"]])
 
+    st.markdown("#### Compared with what the model expected, 2021–2022")
+    expected = load("authority_expected")
+    comparison = data.compare_with_expected(expected[expected.authority_cui == selected])
+    if comparison is None:
+        st.write(f"Not enough contracts to compare: at least {data.MIN_AUTHORITY_CONTRACTS} are needed.")
+    else:
+        first, second, third = st.columns(3)
+        first.metric("Actual single-offer share", f"{comparison['actual'] * 100:.1f}%")
+        second.metric("Expected by the model", f"{comparison['expected'] * 100:.1f}%")
+        third.metric("Contracts", f"{comparison['contracts']:,}")
+        st.write(
+            f"This authority is **{comparison['reading']}** what the model expected. The 95% interval of its actual "
+            f"share is {comparison['low'] * 100:.1f}–{comparison['high'] * 100:.1f}%. "
+            "This is a deviation from a statistical expectation, not a finding about the authority."
+        )
+
+    st.markdown("#### Estimated risk from 2023")
+    st.warning(UNVALIDATED, icon="⚠️")
+    risk = load("authority_risk")
+    rows = risk[risk.authority_cui == selected].sort_values("year")
+    if rows.empty:
+        st.write("No scored notices from this authority since 2023.")
+    else:
+        table_view(rows.assign(mean_risk=(rows.mean_risk * 100).round(1))[["year", "notices", "mean_risk"]], "Show the estimated risk")
+
+
+def feature_list(features: list[str]) -> str:
+    return ", ".join(FEATURE_NAMES[feature] for feature in features) or "none"
+
+
+def model() -> None:
+    results = data.load_model_results()
+    test = results["test"]
+    tested, baseline = test["model"], test["baseline"]
+    names = {"mean_rate": "Mean rate", "logistic": "Logistic regression", "lightgbm": "LightGBM"}
+
+    st.markdown("#### Can a single offer be predicted from what is known at publication?")
+    st.write(
+        f"Partly. On {tested['rows']:,} contracts from 2022 that it had never seen, {names[test['selected']].lower()} scored "
+        f"a PR-AUC of {tested['pr_auc']:.3f}, against {baseline['pr_auc']:.3f} for a simple average "
+        f"and a base rate of {tested['base_rate']:.3f}. That is useful, but far from certain, and many "
+        "single offers remain hard to foresee."
+    )
+    first, second, third = st.columns(3)
+    first.metric("PR-AUC on the 2022 test", f"{tested['pr_auc']:.3f}", help=f"95% interval {tested['pr_auc_low']:.3f}–{tested['pr_auc_high']:.3f}")
+    second.metric("Simple average", f"{baseline['pr_auc']:.3f}")
+    third.metric("Calibration error", f"{tested['calibration_error'] * 100:.1f} points")
+
+    st.markdown("#### Predicted against actual, on the 2022 test")
+    plot(charts.calibration_figure(load("calibration")))
+    st.caption("Close to the dotted line means a predicted 30% really happens about 30% of the time. Few contracts get a prediction above 60%, so the last points are less reliable. The test ran once, after the model was chosen.")
+
+    st.markdown("#### How the model was chosen, on 2021")
+    variants = results["validation"]["variants"]
+    st.dataframe(
+        [
+            {"Variant": names[name], "PR-AUC": f"{values['pr_auc']:.3f}", "Calibration error (points)": f"{values['calibration_error'] * 100:.1f}"}
+            for name, values in variants.items()
+        ],
+        hide_index=True,
+        width="stretch",
+    )
+    st.caption(
+        f"{names[results['validation']['selected']]} was chosen. A more complex variant had to gain at least 0.02 PR-AUC "
+        "without worse calibration, a rule set before seeing any results."
+    )
+
+    st.markdown("#### Scores from 2023")
+    st.warning(UNVALIDATED, icon="⚠️")
+    drift = results["drift"]
+    st.dataframe(
+        [
+            {
+                "Year": year,
+                "Scored notices": values["procedures"],
+                "Mean estimated risk (%)": round(values["mean_risk"] * 100, 1),
+                "Inputs that changed (PSI above 0.25)": feature_list(values["above_warning"]),
+            }
+            for year, values in drift.items()
+            if year != "reference_2022"
+        ],
+        hide_index=True,
+        width="stretch",
+    )
+    reference = feature_list(drift["reference_2022"]["above_warning"])
+    st.caption(
+        f"Compared per procedure with the training data. The 2022 test data shows a similar change ({reference}), "
+        "so this isn't a new break, but later accuracy can't be measured."
+    )
+
 
 def spending(metadata: dict) -> None:
     value = load("contracted_value")
@@ -202,6 +307,7 @@ The figures here are derived from that data. This extract is from {metadata['exp
 - **What a single offer shows:** {NOT_WRONGDOING}
 - **Totals:** contracted value hasn't been compared with an official figure.
 - **Suspect values:** the outlier rule is a judgement call and doesn't check every value.
+- **The model:** it predicts from what is known at publication, and scores from 2023 can't be validated.
 
 The full method is in the [data validation report]({REPO_URL}/blob/main/docs/data-validation.md).
 """
@@ -213,7 +319,7 @@ def main() -> None:
     metadata = data.load_metadata()
     st.title("SEAP Lens")
     st.caption(f"Romanian public procurement data. {INDEPENDENCE}")
-    tabs = st.tabs(["Overview", "Competition", "Authorities", "Contracted value", "About"])
+    tabs = st.tabs(["Overview", "Competition", "Authorities", "Model", "Contracted value", "About"])
     with tabs[0]:
         overview(metadata)
     with tabs[1]:
@@ -221,8 +327,10 @@ def main() -> None:
     with tabs[2]:
         authorities()
     with tabs[3]:
-        spending(metadata)
+        model()
     with tabs[4]:
+        spending(metadata)
+    with tabs[5]:
         about(metadata)
 
 

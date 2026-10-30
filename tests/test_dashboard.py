@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 from streamlit.testing.v1 import AppTest
 
-from dashboard.data import MIN_CONTRACTS, period_share, segment_competition, shorten, wilson_interval, yearly_competition
+from dashboard.data import MIN_AUTHORITY_CONTRACTS, MIN_CONTRACTS, compare_with_expected, period_share, segment_competition, shorten, wilson_interval, yearly_competition
 
 APP = str(Path(__file__).parent.parent / "dashboard" / "app.py")
 
@@ -71,3 +71,22 @@ def test_app_says_it_is_independent_and_that_one_offer_is_not_wrongdoing(app):
 
 def test_totals_are_marked_as_not_verified(app):
     assert any("not been compared with an official figure" in item.value for item in app.warning)
+
+
+def expected_rows(contracts, single, expected):
+    return pd.DataFrame({"contracts": [contracts], "single_offer_contracts": [single], "expected_single_offers": [expected]})
+
+
+def test_small_authorities_are_not_compared():
+    assert compare_with_expected(expected_rows(MIN_AUTHORITY_CONTRACTS - 1, 5, 5)) is None
+
+
+def test_comparison_reads_above_only_when_the_interval_clears_the_expectation():
+    assert compare_with_expected(expected_rows(100, 60, 30))["reading"] == "above"
+    assert compare_with_expected(expected_rows(100, 10, 30))["reading"] == "below"
+    assert compare_with_expected(expected_rows(100, 32, 30))["reading"] == "in line with"
+
+
+def test_scores_are_marked_as_unvalidated_and_the_test_result_is_shown(app):
+    assert any("These scores are unvalidated" in item.value for item in app.warning)
+    assert any("PR-AUC on the 2022 test" == item.label for item in app.metric)
