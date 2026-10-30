@@ -1,10 +1,13 @@
 """Plotly figures for the dashboard. Each returns a figure without a title, which the view writes."""
 
+from html import escape
+
 import pandas as pd
 import plotly.graph_objects as go
 
 FONT = "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
 INK = "#0b0b0b"
+INK_SECONDARY = "#52514e"
 INK_MUTED = "#898781"
 GRID = "#e1e0d9"
 BASELINE = "#c3c2b7"
@@ -47,34 +50,33 @@ def national_share_figure(yearly: pd.DataFrame) -> go.Figure:
     return fig
 
 
-def segment_bars_figure(segments: pd.DataFrame, label: str, national: float) -> go.Figure:
-    """Horizontal bars, highest first, with the national share as a reference line."""
-    ordered = segments.iloc[::-1]
-    fig = go.Figure(
-        go.Bar(
-            x=ordered.single_offer_share * 100,
-            y=ordered[label],
-            orientation="h",
-            marker=dict(color=BLUE, cornerradius=4),
-            customdata=ordered[["contracts", "share_low", "share_high"]].assign(
-                share_low=ordered.share_low * 100, share_high=ordered.share_high * 100
-            ),
-            hovertemplate=(
-                "%{y}: %{x:.1f}% of %{customdata[0]:,} contracts"
-                "<br>95% interval: %{customdata[1]:.1f}–%{customdata[2]:.1f}%<extra></extra>"
-            ),
+def segment_bars_html(segments: pd.DataFrame, label: str, national: float) -> str:
+    """Ranked bars in HTML, because category names reach 135 characters and must stay readable.
+
+    A label sits beside its bar on a wide screen and wraps above it on a phone, which a Plotly
+    axis can't do. Hovering over a row shows its contracts and confidence interval.
+    """
+    scale = max(segments.single_offer_share.max(), national) * 100
+    marker = national * 100 / scale * 100
+    rows = []
+    for row in segments.itertuples():
+        share = row.single_offer_share * 100
+        title = (
+            f"{getattr(row, label)}: {share:.1f}% of {row.contracts:,} contracts. "
+            f"95% interval: {row.share_low * 100:.1f}–{row.share_high * 100:.1f}%"
         )
-    )
-    _theme(fig, height=max(280, 24 * len(ordered) + 70))
-    fig.add_vline(
-        x=national * 100, line=dict(color=INK, width=1, dash="dot"),
-        annotation_text=f"National {national * 100:.1f}%", annotation_position="top",
-        annotation_font=dict(size=12, color=INK),
-    )
-    fig.update_layout(bargap=0.3)
-    fig.update_xaxes(title_text="Contracts with one offer (%)", showgrid=True, gridcolor=GRID, rangemode="tozero")
-    fig.update_yaxes(showgrid=False, automargin=True, type="category")
-    return fig
+        rows.append(
+            f'''<div title="{escape(title, quote=True)}" style="display:flex;flex-wrap:wrap;align-items:center;column-gap:12px;padding:4px 0">'''
+            f'''<div style="flex:1 1 260px;min-width:0;font-size:13px;line-height:1.3;color:{INK_SECONDARY}">{escape(str(getattr(row, label)))}</div>'''
+            f'''<div style="flex:2 1 260px;display:flex;align-items:center;gap:8px;min-width:0">'''
+            f'''<div style="position:relative;flex:1;height:14px">'''
+            f'''<div style="height:14px;width:{share / scale * 100:.2f}%;background:{BLUE};border-radius:0 4px 4px 0"></div>'''
+            f'''<div style="position:absolute;top:-5px;bottom:-5px;left:{marker:.2f}%;border-left:1px dotted {INK}"></div>'''
+            f'''</div><div style="flex:0 0 44px;text-align:right;font-size:13px;font-variant-numeric:tabular-nums;color:{INK}">{share:.1f}%</div>'''
+            "</div></div>"
+        )
+    legend = f'''<div style="font-size:12px;color:{INK_SECONDARY};padding-bottom:6px">Dotted line: national share, {national * 100:.1f}%</div>'''
+    return f'''<div style="background:{SURFACE};padding:12px 16px;border-radius:8px">{legend}{"".join(rows)}</div>'''
 
 
 def authority_share_figure(authority: pd.DataFrame, national: pd.DataFrame) -> go.Figure:
