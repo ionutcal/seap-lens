@@ -1,6 +1,8 @@
 """Reads a SEAP file into a DataFrame of strings, whatever format it really is in."""
 
+import csv
 import io
+import sys
 from pathlib import Path
 
 import pandas as pd
@@ -28,6 +30,14 @@ def sniff_csv_dialect(header: str) -> tuple[str, str]:
     return max(SEPARATORS, key=header.count), '"'
 
 
+def _count_malformed(text: str, separator: str, quote: str) -> int:
+    """Count the rows pandas skips because they have more fields than the header."""
+    csv.field_size_limit(sys.maxsize)
+    rows = csv.reader(io.StringIO(text, newline=""), delimiter=separator, quotechar=quote)
+    width = len(next(rows))
+    return sum(1 for row in rows if len(row) > width)
+
+
 def _read_csv(path: Path) -> pd.DataFrame:
     data = path.read_bytes()
     try:
@@ -48,7 +58,13 @@ def _read_csv(path: Path) -> pd.DataFrame:
         na_values=[""],
         on_bad_lines="skip",
     )
-    frame.attrs.update(encoding=encoding, separator=separator, sheets=1, lines=text.count("\n"))
+    frame.attrs.update(
+        encoding=encoding,
+        separator=separator,
+        sheets=1,
+        lines=text.count("\n"),
+        malformed=_count_malformed(text, separator, quote),
+    )
     return frame
 
 
@@ -81,7 +97,7 @@ def _read_spreadsheet(path: Path) -> pd.DataFrame:
     # Exports split at 65,000 rows repeat the header. Other sheets are legends.
     frames = [sheet for sheet in sheets if list(sheet.columns) == columns]
     frame = pd.concat(frames, ignore_index=True)
-    frame.attrs.update(encoding=None, separator=None, sheets=len(frames), lines=None)
+    frame.attrs.update(encoding=None, separator=None, sheets=len(frames), lines=None, malformed=0)
     return frame
 
 

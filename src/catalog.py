@@ -32,9 +32,13 @@ EXCLUDED_TERMS = (
     "directe",
     "notificari",
 )
-# Published files known to be wrong, when a correct version of the same period exists.
-# This CSV has 21,433 rows, while the XLS of the same period has 151,431.
-BROKEN_FILES = {"datagov-raport-contracte-publicate-t-i-2024.csv"}
+# Published files known to be wrong. See docs/data-validation.md.
+BROKEN_FILES = {
+    # 21,433 rows, while the XLS of the same period has 151,431.
+    "datagov-raport-contracte-publicate-t-i-2024.csv",
+    # A copy of 2019 Q3, with dates from July to September. No correct 2019 Q2 exists.
+    "raport-t-2-2019.xls",
+}
 
 
 @dataclass(frozen=True)

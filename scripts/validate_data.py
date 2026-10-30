@@ -151,94 +151,6 @@ def scoring_alignment(contracts: pd.DataFrame, notices: pd.DataFrame) -> dict:
     }
 
 
-def value_quality(contracts: pd.DataFrame) -> dict:
-    values = pd.to_numeric(contracts.value_ron, errors="coerce")
-    result = {}
-    for year, group in contracts.groupby("file_year"):
-        current = values[group.index]
-        result[int(year)] = {
-            "null_share": round(float(current.isna().mean()), 4),
-            "framework_share": round(float(group.agreement_type.fillna("").str.contains("cadru", case=False).mean()), 4),
-            "negative_or_zero": int((current <= 0).sum()),
-        }
-    return result
-
-
-def republication(contracts: pd.DataFrame) -> dict:
-    """Measures how often the same contract row appears in more than one file."""
-    keys = ["award_notice_id", "lot_number", "contract_number", "winner_cui", "value_ron"]
-    tagged = contracts[keys + ["file_year", "file_period"]].copy()
-    tagged["file"] = tagged.file_year.astype(str) + tagged.file_period
-    files_per_key = tagged.groupby(keys, dropna=False).file.nunique()
-    within_file = tagged.duplicated(keys + ["file"]).sum()
-    notice_files = tagged.dropna(subset=["award_notice_id"]).groupby("award_notice_id").file.nunique()
-    by_year = {}
-    first_seen = tagged.drop_duplicates(keys)
-    for year, group in tagged.groupby("file_year"):
-        by_year[int(year)] = {
-            "rows": len(group),
-            "rows_new_globally": int((first_seen.file_year == year).sum()),
-        }
-    return {
-        "rows": len(tagged),
-        "distinct_keys": len(files_per_key),
-        "keys_in_more_than_one_file": int((files_per_key > 1).sum()),
-        "duplicate_rows_within_one_file": int(within_file),
-        "award_notices": len(notice_files),
-        "award_notices_in_more_than_one_file": int((notice_files > 1).sum()),
-        "by_year": by_year,
-    }
-
-
-def contract_values(contracts: pd.DataFrame) -> dict:
-    """Shows what each kind of row contributes, to decide which values count as spending."""
-    keys = ["award_notice_id", "lot_number", "contract_number", "winner_cui", "value_ron"]
-    frame = contracts.drop_duplicates(keys).copy()
-    frame["value"] = pd.to_numeric(frame.value_ron, errors="coerce")
-    frame["through"] = frame.concluded_through.fillna("(column missing)").str.strip()
-    frame["agreement"] = frame.agreement_type.fillna("(column missing)").str.strip()
-    result = {}
-    for year, group in frame.groupby("file_year"):
-        current = {}
-        for (agreement, through), rows in group.groupby(["agreement", "through"]):
-            if len(rows) < 50:
-                continue
-            current[f"{agreement} | {through}"] = {
-                "rows": len(rows),
-                "null_value": round(float(rows.value.isna().mean()), 4),
-                "median": float(rows.value.median()) if rows.value.notna().any() else None,
-                "sum_bn_ron": round(float(rows.value.sum()) / 1e9, 2),
-                "max_bn_ron": round(float(rows.value.max()) / 1e9, 3) if rows.value.notna().any() else None,
-            }
-        result[int(year)] = current
-    return result
-
-
-def label_units(contracts: pd.DataFrame) -> dict:
-    """Counts usable labels per year at the award notice and contract number level."""
-    keys = ["award_notice_id", "contract_number"]
-    labelled = contracts.dropna(subset=["bid_count", *keys]).copy()
-    labelled["bids"] = pd.to_numeric(labelled.bid_count, errors="coerce")
-    labelled["procedure"] = labelled.procedure_type.fillna("").str.strip()
-    units = labelled.groupby(["file_year", "file_period", *keys]).agg(
-        bids=("bids", "max"), varying=("bids", "nunique"), procedure=("procedure", "first")
-    ).reset_index()
-    by_quarter = (
-        units.groupby(["file_year", "file_period"]).bids
-        .agg(units="size", single_share=lambda values: round(float((values == 1).mean()), 4))
-    )
-    return {
-        "units_total": len(units),
-        "units_with_varying_bids": int((units.varying > 1).sum()),
-        "by_file": {f"{year}{period}": row.to_dict() for (year, period), row in by_quarter.iterrows()},
-        "single_share_by_procedure": (
-            units.groupby("procedure").bids
-            .agg(units="size", single_share=lambda values: round(float((values == 1).mean()), 4))
-            .sort_values("units", ascending=False).head(10).to_dict("index")
-        ),
-    }
-
-
 def junk_rows(contracts: pd.DataFrame, notices: pd.DataFrame) -> dict:
     known_types = {"Furnizare", "Servicii", "Lucrari"}
     misaligned = contracts.contract_type.notna() & ~contracts.contract_type.str.strip().isin(known_types)
@@ -273,10 +185,6 @@ def main() -> None:
         "join_rates": join_rates(contracts, notices),
         "county": county_coverage(contracts, notices),
         "scoring": scoring_alignment(contracts, notices),
-        "values": value_quality(contracts),
-        "republication": republication(contracts),
-        "contract_values": contract_values(contracts),
-        "label_units": label_units(contracts),
         "junk": junk_rows(contracts, notices),
         "licence": licence(),
     }

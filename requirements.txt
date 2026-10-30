@@ -7,6 +7,9 @@ pandas>=2.2
 python-calamine
 pyarrow
 
+# Warehouse: DuckDB locally. The Athena adapter comes with the cloud stage.
+dbt-duckdb
+
 # Tests
 pytest
 openpyxl

@@ -94,6 +94,10 @@ def test_select_skips_the_truncated_2024_q1_csv():
     assert [r.filename for r in selected] == ["datagov-raport-contracte-publicate-t-i-2024.xls"]
 
 
+def test_select_drops_the_2019_q2_file_that_copies_q3():
+    assert select_resources(2019, [raw("Contracte 2019 - T2", "raport-t-2-2019.xls")]) == []
+
+
 def test_select_keeps_year_kind_period_and_drops_other_files():
     selected = select_resources(
         2026,

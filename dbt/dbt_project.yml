@@ -1,0 +1,17 @@
+name: seap_lens
+version: "1.0.0"
+profile: seap_lens
+model-paths: ["models"]
+test-paths: ["tests"]
+vars:
+  # Above this, or above this multiple of the estimate, a value is treated as an entry error.
+  suspect_value_ron: 10000000000
+  suspect_estimate_multiple: 10
+models:
+  seap_lens:
+    staging:
+      +materialized: view
+    intermediate:
+      +materialized: table
+    marts:
+      +materialized: table

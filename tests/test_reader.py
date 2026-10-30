@@ -54,6 +54,20 @@ def test_reads_windows_1250_csv(tmp_path):
     assert read_table(path).loc[0, "A"] == "Făget"
 
 
+def test_counts_csv_rows_with_the_wrong_number_of_fields(tmp_path):
+    path = write(tmp_path, "a.csv", b"A|B\n1|2\n1|2|3\n4|5\n")
+    df = read_table(path)
+    assert df["A"].tolist() == ["1", "4"]
+    assert df.attrs["malformed"] == 1
+
+
+def test_multiline_fields_are_not_counted_as_malformed(tmp_path):
+    path = write(tmp_path, "a.csv", b'A,B\n"x\ny",2\n')
+    df = read_table(path)
+    assert df.attrs["malformed"] == 0
+    assert len(df) == 1
+
+
 def write_workbook(path, sheets):
     with pd.ExcelWriter(path) as writer:
         for name, rows in sheets.items():

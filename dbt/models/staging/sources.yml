@@ -1,0 +1,11 @@
+version: 2
+sources:
+  - name: standard
+    description: Typed Parquet files written by scripts/standardize_all.py.
+    tables:
+      - name: contracts
+        meta:
+          external_location: "read_parquet('{{ env_var('SEAP_DATA_DIR', '../data') }}/standard/contracts/*.parquet', union_by_name=true)"
+      - name: notices
+        meta:
+          external_location: "read_parquet('{{ env_var('SEAP_DATA_DIR', '../data') }}/standard/notices/*.parquet', union_by_name=true)"

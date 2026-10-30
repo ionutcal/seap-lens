@@ -30,10 +30,10 @@ A recruiter can open the dashboard and understand the findings within a few minu
 
 The full findings are in the [data validation report](../../data-validation.md). The ones that shape this design:
 
-- **Volume:** 81 files, 2.43 GB raw, with 4,004,161 contract rows and 304,519 notice rows, from 2016 to 2026 Q3.
-- **Bid counts:** present from 2016 to 2022 Q4. Missing in 2022 Q1 and from 2023 onwards. 2019 Q2 is also missing, because its file is a copy of 2019 Q3.
-- **Republication:** the same contract rows appear in several files. The 4.0 million rows hold 2.4 million distinct keys.
-- **Format drift:** 158 contract and 96 notice column names, several date conventions that change between files, mixed encodings, and spreadsheets split across sheets.
+- **Volume:** 80 usable files, 2.40 GB raw, with 3,986,575 contract rows and 304,514 notice rows, from 2016 to 2026 Q3.
+- **Bid counts:** present from 2016 to 2022 Q4. Missing in 2022 Q1 and from 2023 onwards. 2019 Q2 is also missing, because its file is a copy of 2019 Q3. That leaves 557,340 usable labels.
+- **Republication:** the same contract rows appear in several files, and 7.7% of republished contracts change value. The 4.0 million rows reduce to 2.18 million awards.
+- **Format drift:** 158 contract and 96 notice column names, several date conventions that change between files, thousands commas in two quarters, mixed encodings, and spreadsheets split across sheets.
 - **Wrong files:** the 2024 Q1 contract CSV is truncated, and the 2017 Q1 notice file holds dates from 2015.
 - **Value outliers:** some values look like entry errors, including one 125.9 billion RON contract in 2025.
 
@@ -133,14 +133,15 @@ Public Streamlit dashboard
 **Dashboard tables**
 
 - `mart_authority_competition`: competition by authority and year, for years with bid counts.
-- `mart_supplier_concentration`: market share of the top suppliers by county and CPV group.
+- `mart_contracted_value`: contracted value by year and kind of contract, with the suspect values excluded.
+- `mart_supplier_concentration`: market share of the top suppliers by county, CPV group and year, on real contracts from 2023.
 
 ### Rules that keep the numbers correct
 
-1. **Republished rows count once.** Rows deduplicate across files on award notice, lot, contract number, winner and value, keeping the latest publication. The repeated 2019 Q2 file is dropped.
-2. **Contracted value has a strict definition.** It is the sum of `Fara acord cadru` and `Cu acord cadru subsecvent` rows, from 2023 onwards. Earlier files cannot separate ceilings from real contracts, so they get no spending total.
-3. **Framework ceilings stay separate.** `Cu acord cadru` values are reported as ceilings, never added to spending.
-4. **No total without the outlier rule.** Value totals are published only after the rule in section 11 is settled. Counts and medians do not depend on it.
+1. **Only a contract's latest file counts.** For each award notice, lot, contract number and winner, rows come from the latest file that holds them, because republished contracts can change value. Rows in that file with different values stay, because older files have no lots and one contract number can cover several items. The repeated 2019 Q2 file is excluded.
+2. **Contracted value has a strict definition.** It is the sum of `Fara acord cadru` and `Cu acord cadru subsecvent` contracts, by contract year from 2023. Joint winners repeat a value, so each contract counts once. Earlier years get no spending total, because most of their files cannot separate ceilings from real contracts.
+3. **Framework ceilings get no totals.** `Cu acord cadru` values are ceilings that repeat for each winner, so only counts and medians are published.
+4. **Suspect values stay out of totals.** A value is suspect if it is zero or negative, above 10 billion RON, or more than 10 times the procedure's estimate. It stays in `fct_awards`, flagged, and the dashboard shows how many were excluded.
 5. **One winner does not mean one bidder.** Winner count says nothing about offers and must not stand in for the bid count.
 6. **Gaps stay gaps.** Bid count is `NULL`, never 0, where the source has none. The dashboard shows clearly where the data stops, including 2019 Q2 and 2022 Q1.
 7. **Only RON for estimated values.** Other currencies stay `NULL`.
@@ -211,7 +212,7 @@ The dashboard receives new data only if every check has passed. Otherwise it sta
 | dbt | Test failure | Publishing stops |
 | Model | PSI exceeds 0.25 on any feature | Scores are published with a warning |
 
-The 1% threshold is a starting value. In the validated data, junk rows were very few, but CSV rows skipped as malformed have not been counted yet.
+The 1% threshold is a starting value. In the validated data, no file came near it: 31 rows were rejected and 9 were malformed across all files.
 
 ## 8. Cost controls
 
@@ -242,7 +243,7 @@ The 1% threshold is a starting value. In the validated data, junk rows were very
 ## 10. Build order
 
 1. **Data validation:** done. See the [report](../../data-validation.md).
-2. **Complete warehouse:** ingestion, standardization, dbt and Terraform.
+2. **Complete warehouse:** standardization and dbt run locally on DuckDB. Still to do: moving dbt to Athena, Airflow and Terraform.
 3. **Public dashboard:** the first point where the project is complete enough to go on the CV.
 4. **ML model:** training, evaluation and scores.
 5. **Polish:** README, diagram, Airflow screenshots and main findings.
@@ -251,8 +252,6 @@ The 1% threshold is a starting value. In the validated data, junk rows were very
 
 | Question | Stage | If the answer is bad |
 |---|---|---|
-| Which outlier rule makes value totals trustworthy? | 2 | Publish counts and medians only, with no totals |
-| How many CSV rows are skipped as malformed? | 2 | Use the XLS version of that period where one exists |
 | Which EC2 instance type is available on the free plan, and at what hourly cost? | 2 | Reduce instance size or the time the instance runs |
 | Does dbt-athena support the incremental loads needed, with Iceberg? | 2 | Rebuild tables instead of loading incrementally |
 | What are the licences of the other years' datasets? | 2, before publishing | Adjust the attribution or what gets republished |

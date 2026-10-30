@@ -4,8 +4,11 @@ __pycache__/
 venv/
 .venv/
 data/
+dbt/target/
+dbt/logs/
 *.log
 .pytest_cache/
 .vscode/
 .idea/
 .DS_Store
+dbt/.user.yml
