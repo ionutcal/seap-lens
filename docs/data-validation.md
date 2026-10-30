@@ -27,9 +27,9 @@ This report closes the data questions in section 11 of the [design spec](superpo
 | Field alignment for scoring | Very good in the labelled years. On 106,122 joined procedures, estimated values match on 100% of comparable rows after rounding, and CPV codes on 99.99%. Alignment after 2022 cannot be tested this way, because contract files no longer carry the estimate |
 | Malformed CSV rows | 9 in total, all in 2016 S1 |
 | Full dataset size | 2.40 GB raw. Volume stays small enough for Athena |
-| Licence | CC BY 4.0 on the 2025 dataset, the only one checked. Attribution is required |
+| Licence | OGL-ROU-1.0 for 2016–2020 and CC BY 4.0 for 2021–2026. The source is attributed in the dashboard and the README |
 
-Still open, because they are not data questions: the EC2 instance type and cost, Iceberg support in dbt-athena, and the size of the dashboard's Parquet file.
+Still open, because they are not data questions: the EC2 instance type and cost, Iceberg support in dbt-athena, and an official figure to compare contracted value with.
 
 ## Files that are wrong as published
 
@@ -100,7 +100,7 @@ Contracted value by contract year, counting joint winners once and leaving out s
 | 2025 | 159.0 | 54.5 | 213.5 |
 | 2026, to Q3 | 89.0 | 31.7 | 120.7 |
 
-These totals have not been compared with an official figure.
+A search on 2026-10-30 found no official national total to compare these with, so they are published as unverified estimates.
 
 ### Outlier rule
 

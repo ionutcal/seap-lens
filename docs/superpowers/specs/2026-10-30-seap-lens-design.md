@@ -26,7 +26,7 @@ A recruiter can open the dashboard and understand the findings within a few minu
 
 ## 2. Data
 
-**Source:** yearly "Achiziții publice" datasets from the Autoritatea pentru Digitalizarea României on data.gov.ro, listed through its CKAN API. The 2025 dataset is licensed CC BY 4.0, so attribution is required. The other years' licences must be checked before publishing.
+**Source:** yearly "Achiziții publice" datasets from the Autoritatea pentru Digitalizarea României on data.gov.ro, listed through its CKAN API. Datasets from 2016–2020 are under OGL-ROU-1.0 and those from 2021 under CC BY 4.0. The dashboard and the README attribute the source.
 
 The full findings are in the [data validation report](../../data-validation.md). The ones that shape this design:
 
@@ -244,7 +244,7 @@ The 1% threshold is a starting value. In the validated data, no file came near i
 
 1. **Data validation:** done. See the [report](../../data-validation.md).
 2. **Complete warehouse:** standardization and dbt run locally on DuckDB. Still to do: moving dbt to Athena, Airflow and Terraform.
-3. **Public dashboard:** the first point where the project is complete enough to go on the CV.
+3. **Public dashboard:** built on a 548 KB extract and checked locally. Still to do: deployment. This is the first point where the project is complete enough to go on the CV.
 4. **ML model:** training, evaluation and scores.
 5. **Polish:** README, diagram, Airflow screenshots and main findings.
 
@@ -254,8 +254,7 @@ The 1% threshold is a starting value. In the validated data, no file came near i
 |---|---|---|
 | Which EC2 instance type is available on the free plan, and at what hourly cost? | 2 | Reduce instance size or the time the instance runs |
 | Does dbt-athena support the incremental loads needed, with Iceberg? | 2 | Rebuild tables instead of loading incrementally |
-| What are the licences of the other years' datasets? | 2, before publishing | Adjust the attribution or what gets republished |
-| Does the exported Parquet file fit on Streamlit Community Cloud? | 3 | Reduce the export to aggregates |
+| Can contracted value be compared with an official figure? No official total was found on 2026-10-30 | 3, before publishing | The dashboard keeps marking totals as unverified estimates |
 
 ## 12. Sources
 
