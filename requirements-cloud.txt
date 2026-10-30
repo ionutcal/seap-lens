@@ -1,0 +1,5 @@
+# The move to AWS. Kept apart so the dashboard deployment stays light.
+dbt-athena
+pyathena[pandas]
+boto3
+sqlglot

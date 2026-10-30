@@ -13,3 +13,8 @@ dbt/logs/
 .DS_Store
 dbt/.user.yml
 .claude/
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+infra/airflow/.env

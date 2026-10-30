@@ -5,7 +5,7 @@ with contracts as (
         award_notice_id,
         contract_number,
         min(participation_notice_date) as publication_date,
-        any_value(case when estimated_currency = 'RON' then estimated_value end) as estimated_value_ron
+        {{ pick_any("case when estimated_currency = 'RON' then estimated_value end") }} as estimated_value_ron
     from {{ ref('stg_contracts') }}
     where contract_number is not null
     group by award_notice_id, contract_number

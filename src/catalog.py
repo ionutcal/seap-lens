@@ -48,6 +48,8 @@ class Resource:
     period: str  # "Q1".."Q4", "S1", "S2" or "Y"
     name: str
     url: str
+    # When the portal says the file last changed, so republished files can be fetched again.
+    modified: str = ""
 
     @property
     def filename(self) -> str:
@@ -98,7 +100,8 @@ def select_resources(year: int, raw_resources: list[dict]) -> list[Resource]:
         if kind is None or raw["url"].rsplit("/", 1)[-1] in BROKEN_FILES:
             continue
         period = parse_period(raw["name"])
-        resource = Resource(year, kind, period, raw["name"].strip(), raw["url"])
+        modified = raw.get("last_modified") or raw.get("created") or ""
+        resource = Resource(year, kind, period, raw["name"].strip(), raw["url"], modified)
         current = selected.get((kind, period))
         if current is None or _format_rank(resource.url) < _format_rank(current.url):
             selected[(kind, period)] = resource

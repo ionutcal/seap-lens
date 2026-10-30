@@ -1,0 +1,12 @@
+*
+!requirements.txt
+!requirements-ml.txt
+!requirements-cloud.txt
+!src
+!scripts
+!dbt
+!docs/model
+!infra/airflow/dags
+**/__pycache__
+dbt/target
+dbt/logs

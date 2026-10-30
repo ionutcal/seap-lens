@@ -18,8 +18,8 @@ classified as (
 )
 
 select
-    md5(concat_ws('|', award_notice_id, coalesce(lot_number, ''), coalesce(contract_number, ''),
-                  coalesce(winner_cui, ''), coalesce(cast(value_ron as varchar), ''))) as award_key,
+    {{ row_key(["award_notice_id", "coalesce(lot_number, '')", "coalesce(contract_number, '')",
+                "coalesce(winner_cui, '')", "coalesce(cast(value_ron as varchar), '')"]) }} as award_key,
     award_notice_id,
     award_notice_date,
     participation_notice_id,

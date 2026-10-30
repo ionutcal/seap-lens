@@ -6,7 +6,7 @@ with codes as (
 
 select
     cpv_code,
-    left(cpv_code, 2) as cpv_group,
-    arg_max(cpv_name, file_order) filter (where cpv_name is not null) as cpv_name
+    substr(cpv_code, 1, 2) as cpv_group,
+    {{ latest_by('cpv_name', 'file_order') }} filter (where cpv_name is not null) as cpv_name
 from codes
 group by cpv_code

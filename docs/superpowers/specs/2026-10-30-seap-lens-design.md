@@ -65,7 +65,7 @@ S3 raw            original files, unchanged
     ▼
 Standardization   Python: one schema across all format generations
     ▼
-S3 Parquet        uniform columns, partitioned by year and quarter
+S3 Parquet        uniform columns, one file per year and quarter
     ▼
 Athena + dbt      staging → intermediate → marts, with tests
     ├──► ML model     training once, scoring monthly, results in S3
@@ -91,8 +91,10 @@ Public Streamlit dashboard
 
 - **Cloud:** AWS only. It came from job ads the author saw. Multi-cloud would double the work without adding much.
 - **Warehouse:** Athena over S3. Redshift requires a paid plan.
-- **Orchestration:** self-hosted Airflow in Docker Compose on EC2. Managed Airflow (MWAA) is not supported on this account type.
-- **EC2 runtime:** a schedule starts the instance monthly and the instance stops after the run. A separate rule force-stops it after 4 hours, a starting value to adjust once real run times are known.
+- **Orchestration:** self-hosted Airflow in Docker Compose on EC2, with LocalExecutor. Managed Airflow (MWAA) is not supported on this account type.
+- **EC2 runtime:** `m7i-flex.large`, on the free plan with 8 GB. A schedule starts the instance monthly and the instance stops after the run. A shutdown timer set at every boot stops it after 4 hours, a starting value to adjust once real run times are known.
+- **Tables:** dbt rebuilds them on each run rather than loading incrementally. A rebuild scans under 1 GB per query, so at 5 USD per TB it costs far less than the extra complexity of Iceberg.
+- **Access:** through Session Manager, with no port open to the internet.
 - **Idempotency:** each source file is identified by content hash, so repeated runs do not duplicate data.
 - **MLflow:** runs on the EC2 instance, with results stored in S3 so they survive instance stops.
 - **Trade-off stated openly:** for quarterly data, a scheduled job would be enough. Airflow was chosen to learn and demonstrate it, and the README says so.
@@ -216,7 +218,8 @@ The 1% threshold is a starting value. In the validated data, no file came near i
 
 ## 8. Cost controls
 
-- **EC2:** the last Airflow task stops the instance even when the run fails, and a separate rule force-stops it after 4 hours.
+- **EC2:** the last Airflow task stops the instance even when the run fails, and a shutdown timer stops it after 4 hours.
+- **Publishing:** the pipeline writes the dashboard extract to S3. Committing it to the repository stays a manual step, so a person reviews the numbers first.
 - **Budget alerts:** thresholds at 50% and 80% of credits, sent by email through SNS, because running out of credits closes the account.
 - **Athena:** a workgroup limit on bytes scanned per query blocks oversized queries.
 - **Query price:** Athena costs 5 USD per TB scanned, with no Athena-specific free tier listed on its pricing page. Parquet partitioning keeps scans small.
@@ -243,7 +246,7 @@ The 1% threshold is a starting value. In the validated data, no file came near i
 ## 10. Build order
 
 1. **Data validation:** done. See the [report](../../data-validation.md).
-2. **Complete warehouse:** standardization and dbt run locally on DuckDB. Still to do: moving dbt to Athena, Airflow and Terraform.
+2. **Complete warehouse:** standardization and dbt run locally on DuckDB. The AWS code is written and validated without an account. Still to do: running it on AWS. See the [runbook](../../aws-setup.md).
 3. **Public dashboard:** done, at [seap-lens.streamlit.app](https://seap-lens.streamlit.app/), on a 548 KB extract.
 4. **ML model:** done. See the [results](../../model-results.md).
 5. **Polish:** README, diagram, Airflow screenshots and main findings.
@@ -252,8 +255,8 @@ The 1% threshold is a starting value. In the validated data, no file came near i
 
 | Question | Stage | If the answer is bad |
 |---|---|---|
-| Which EC2 instance type is available on the free plan, and at what hourly cost? | 2 | Reduce instance size or the time the instance runs |
-| Does dbt-athena support the incremental loads needed, with Iceberg? | 2 | Rebuild tables instead of loading incrementally |
+| What does a real run cost and how long does it take? | 2 | Reduce instance size or the time the instance runs |
+| Does the Athena SQL run, and not only parse? | 2 | Fix the portable macros in `dbt/macros` |
 | Can contracted value be compared with an official figure? No official total was found on 2026-10-30 | 3, before publishing | The dashboard keeps marking totals as unverified estimates |
 
 ## 12. Sources
