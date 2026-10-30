@@ -4,9 +4,11 @@ A data warehouse, public dashboard and ML model built on Romanian public procure
 
 **This is an independent project, with no official link to SEAP, SICAP or any Romanian public authority.**
 
+**Live dashboard: [seap-lens.streamlit.app](https://seap-lens.streamlit.app/)**
+
 ## Status
 
-Work in progress. The data has been validated across all files from 2016 to 2026 Q3, the warehouse builds locally on DuckDB, and the dashboard runs locally. Deploying the dashboard, the move to AWS and the ML model are still to come.
+Work in progress. The data has been validated across all files from 2016 to 2026 Q3, the warehouse builds locally on DuckDB, and the dashboard is public. The ML model and the move to AWS are still to come.
 
 - [Design spec](docs/superpowers/specs/2026-10-30-seap-lens-design.md)
 - [Data validation report](docs/data-validation.md)
