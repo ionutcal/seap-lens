@@ -1,7 +1,7 @@
 # SEAP Lens: Design Spec
 
 **Date:** 2026-10-30
-**Status:** Awaiting review
+**Status:** Approved, updated after data validation
 **Repository name:** `seap-lens`
 
 ## 1. Purpose
@@ -17,55 +17,25 @@ SEAP Lens is an independent project with no official link to SEAP, SICAP or any 
 - The dashboard is public and works with no AWS resources running.
 - The pipeline can be rebuilt from the repository, with documented steps.
 - CI passes, and dbt tests pass on the full dataset.
-- The model's 2021 test result is published whatever it turns out to be, next to the simple baseline.
-- The README states the limits openly: missing bid counts after 2021, unvalidated scores from 2022 onwards, and the choice of Airflow for quarterly data.
+- The model's test result on 2022 Q2–Q4 is published whatever it turns out to be, next to the simple baseline.
+- The README states the limits openly: bid counts missing after 2022 and in two earlier quarters, unvalidated scores from 2023 onwards, spending totals available only from 2023, and the choice of Airflow for quarterly data.
 
 ### Success test
 
 A recruiter can open the dashboard and understand the findings within a few minutes. An engineer can find orchestration, tests and reproducible infrastructure in the repository.
 
-## 2. What the data sample showed
+## 2. Data
 
-These findings come from samples checked on 2026-10-30. The full dataset has not been profiled.
+**Source:** yearly "Achiziții publice" datasets from the Autoritatea pentru Digitalizarea României on data.gov.ro, listed through its CKAN API. The 2025 dataset is licensed CC BY 4.0, so attribution is required. The other years' licences must be checked before publishing.
 
-**Source:** yearly "Achiziții publice" datasets from the Autoritatea pentru Digitalizarea României on data.gov.ro, listed through its CKAN API.
+The full findings are in the [data validation report](../../data-validation.md). The ones that shape this design:
 
-### Bid count availability
-
-| Period | Bid count field | Evidence |
-|---|---|---|
-| 2016 | Present (`NumarOfertePrimite`) | Header and content, 2016 S1: 0% missing |
-| 2017–2018 | Present (`NumarOfertePrimite`) | Headers only, T1 of each year |
-| 2019 | Present (`NUMAR_OFERTE`) | Header only, T1 |
-| 2020 | Present (`NUMAR_OFERTE`) | Header and content, T1: 0.1% missing |
-| 2021 | Present (`NUMAR_OFERTE`) | T1 content: 0% missing; T4 header |
-| 2022, 2023, 2024, 2026 | Absent | 2022 T1, 2023 T3–T4, 2024 T1, 2026 T2 |
-| 2025 | Not checked | |
-
-The share of contract rows with exactly one offer was 16.7% in 2016 S1, 25.3% in 2020 T1 and 21.1% in 2021 T1. These are row-level figures, not procedure-level ones.
-
-### Format and schema drift
-
-- Separators vary between `^`, `|` and `,`. The 2022 T1 file also uses `|` as a quote character.
-- Some 2026 files are `.ods` although the portal declares them as `.xlsx`.
-- Column names change between quarters: `CUI_AC` in 2023 T3 becomes `CUI autoritate contractanta` in 2023 T4.
-- The 2026 T2 contract file has 21 columns, against 27 in 2023 T3. It no longer has authority type, among others.
-- Lot numbers (`NUMAR_LOT`) are absent from the 2016, 2019, 2020 and 2021 files checked.
-- Notice identifiers are numeric in 2016 and look like `CN1051257` in 2023.
-- The 2016 S1 file is not UTF-8. Its bytes point to a Windows-1252 style encoding (for example `0x96` for a dash), while the 2023 files are UTF-8. The parser must set the encoding per generation.
-
-### Data quality
-
-- Supplier tax codes appear as `RO 123`, `RO123` and `123`. In 2023 T3, 405 codes have more than one company name.
-- Contract value is missing on 14.2% of rows in 2023 T3 and 1.1% in 2026 T2.
-- In 2023 T3, 92.3% of contract rows belong to framework agreements. Raw contract value sums to 544.4 billion RON and falls to 224.7 billion after removing repeats on notice, lot, contract number and value. Even the lower figure is not real spending, because it still includes framework ceilings.
-- All 1,072 initiation notices marked `Atribuita` in 2023 T3 match contracts from T3–T4, so the join works for awarded procedures.
-- 5,921 of 8,086 initiation notices in 2023 T3 are `In desfasurare`. The field looks like a status at export time, so it is not usable as an outcome.
-- About 1% of estimated values in 2023 T3 initiation notices are in a currency other than RON.
-
-### Volume
-
-The 2023 T3 contract file is about 100 MB. Total volume has not been measured, but nothing so far justifies distributed processing.
+- **Volume:** 80 usable files, 2.40 GB raw, with 3,986,575 contract rows and 304,514 notice rows, from 2016 to 2026 Q3.
+- **Bid counts:** present from 2016 to 2022 Q4. Missing in 2022 Q1 and from 2023 onwards. 2019 Q2 is also missing, because its file is a copy of 2019 Q3. That leaves 557,340 usable labels.
+- **Republication:** the same contract rows appear in several files, and 7.7% of republished contracts change value. The 4.0 million rows reduce to 2.18 million awards.
+- **Format drift:** 158 contract and 96 notice column names, several date conventions that change between files, thousands commas in two quarters, mixed encodings, and spreadsheets split across sheets.
+- **Wrong files:** the 2024 Q1 contract CSV is truncated, and the 2017 Q1 notice file holds dates from 2015.
+- **Value outliers:** some values look like entry errors, including one 125.9 billion RON contract in 2025.
 
 ## 3. Scope
 
@@ -74,7 +44,7 @@ The 2023 T3 contract file is about 100 MB. Total volume has not been measured, b
 - Contract files and initiation notices, from 2016 to the present.
 - A warehouse with tested dimensional marts.
 - A public dashboard.
-- One ML model that predicts single-offer procedures.
+- One ML model that predicts single-offer contracts.
 
 **Out of scope**
 
@@ -110,8 +80,8 @@ Public Streamlit dashboard
 | Component | Responsibility |
 |---|---|
 | Ingestion | Lists files through the data.gov.ro API, downloads only new or changed ones, and stores them in S3 raw |
-| Standardization | One parser per format generation, producing one schema with validation |
-| dbt on Athena | Cleans data, resolves suppliers by tax code, and builds marts |
+| Standardization | Detects each file's real format, maps it to one schema, parses dates per file, and validates rows |
+| dbt on Athena | Cleans data, deduplicates across files, resolves suppliers by tax code, and builds marts |
 | ML | Trains and evaluates once, then scores new notices and monitors drift |
 | Airflow | Runs the steps in order, with retries |
 | Terraform | Creates S3, EC2, IAM, schedules, the stop guard, and cost controls |
@@ -141,75 +111,86 @@ Public Streamlit dashboard
 
 | Layer | Purpose | Examples |
 |---|---|---|
-| staging | Rename columns, cast types, normalize tax codes (`RO 123` becomes `123`) | `stg_contracts`, `stg_notices` |
-| intermediate | Unify format generations, link contracts to notices, remove repeats | `int_awards_unified`, `int_suppliers_resolved` |
+| staging | Rename columns, cast types, normalize tax codes (`RO 123` and `123.0` become `123`) | `stg_contracts`, `stg_notices` |
+| intermediate | Deduplicate across files, link contracts to notices, resolve suppliers | `int_awards_unified`, `int_suppliers_resolved` |
 | marts | Final tables for the dashboard and the model | below |
 
 ### Marts
 
 **Facts**
 
-- `fct_awards`: one row per award notice, lot, contract and winner. Holds the published value, the contract type and a framework flag.
-- `fct_procedures`: one row per procedure. Holds the estimated value, the winner count and the bid count, which is `NULL` after 2021.
+- `fct_awards`: one row per award notice, lot, contract number, winner and value, after deduplication. Lot is `NULL` where files have none. Holds the published value, the contract type, how the contract was concluded, and the first and latest file it appeared in.
+- `fct_contract_competition`: one row per award notice and contract number. Holds the bid count, which is `NULL` where the source has none, and a single-offer flag.
+- `fct_procedures`: one row per initiation notice, with lot-level notices from 2026 Q3 reduced to procedure level. Holds the estimated value and the procedure details.
 
 **Dimensions**
 
-- `dim_authority`: by tax code, with type and county where available.
+- `dim_authority`: by tax code, with type and county taken from notices and contract files, using the most recent known value.
 - `dim_supplier`: by normalized tax code, with the most recent name.
 - `dim_cpv`: CPV code and its top-level group (first two digits).
 - `dim_date`: standard calendar.
 
 **Dashboard tables**
 
-- `mart_authority_competition`: competition by authority and year.
-- `mart_supplier_concentration`: market share of the top suppliers by county and CPV group.
+- `mart_authority_competition`: competition by authority and year, for years with bid counts.
+- `mart_contracted_value`: contracted value by year and kind of contract, with the suspect values excluded.
+- `mart_supplier_concentration`: market share of the top suppliers by county, CPV group and year, on real contracts from 2023.
 
 ### Rules that keep the numbers correct
 
-1. **Values are never summed blindly.** Framework agreements are reported separately, as ceilings. "Contracted value" covers only rows that are not framework agreements.
-2. **One winner does not mean one bidder.** Winner count exists after 2021 but says nothing about offers, and it must not stand in for the bid count.
-3. **Gaps stay gaps.** Bid count after 2021 is `NULL`, never 0, and the dashboard shows clearly where the data stops.
-4. **Only RON for estimated values.** Other currencies stay `NULL`.
-5. **No dimension history.** Only the most recent supplier name is kept.
+1. **Only a contract's latest file counts.** For each award notice, lot, contract number and winner, rows come from the latest file that holds them, because republished contracts can change value. Rows in that file with different values stay, because older files have no lots and one contract number can cover several items. The repeated 2019 Q2 file is excluded.
+2. **Contracted value has a strict definition.** It is the sum of `Fara acord cadru` and `Cu acord cadru subsecvent` contracts, by contract year from 2023. Joint winners repeat a value, so each contract counts once. Earlier years get no spending total, because most of their files cannot separate ceilings from real contracts.
+3. **Framework ceilings get no totals.** `Cu acord cadru` values are ceilings that repeat for each winner, so only counts and medians are published.
+4. **Suspect values stay out of totals.** A value is suspect if it is zero or negative, above 10 billion RON, or more than 10 times the procedure's estimate. It stays in `fct_awards`, flagged, and the dashboard shows how many were excluded.
+5. **One winner does not mean one bidder.** Winner count says nothing about offers and must not stand in for the bid count.
+6. **Gaps stay gaps.** Bid count is `NULL`, never 0, where the source has none. The dashboard shows clearly where the data stops, including 2019 Q2 and 2022 Q1.
+7. **Only RON for estimated values.** Other currencies stay `NULL`.
+8. **County comes from `dim_authority`.** Notices stop carrying county after 2024 Q3, and contract files have none. Authorities with no earlier notice, about 5% in 2025–2026, stay `NULL`.
+9. **No dimension history.** Only the most recent values are kept.
 
 ## 6. ML model
 
 ### Target
 
-The probability that a procedure receives exactly one offer, using only what is known when the notice is published. Whether the unit is the contract or the procedure depends on validation step 1 in section 10.
+The probability that a contract receives exactly one offer, using only what is known when the notice is published.
 
-Procedures without real competition, such as negotiation without a participation notice, are excluded because a single offer is normal there.
+- **Unit:** the award notice plus contract number. The bid count is stable at this level, and varies in only 1.6% of units.
+- **Disagreements:** the maximum bid count applies, so a unit is single-offer only if every row says so.
+
+Procedures without real competition, such as negotiation without a participation notice, are excluded because a single offer is normal there. In the data, 49.7% of those units have one offer, and 98.8% for accelerated negotiation.
 
 ### Features
 
-- **Used:** CPV group, contract type, procedure type, estimated value, award criterion, month and authority history.
+- **Used:** CPV group, contract type, procedure type, estimated value, month, authority type and authority history.
+- **Authority type** comes from `dim_authority`, because notices do not carry it.
 - **Authority history** uses only data from before each procedure.
-- **Never used:** final value, winner, contract date or any other field that appears after award.
-- **Availability rule:** a feature must exist across all periods. Authority type, for example, is missing from the 2026 T2 file, so it can only come from `dim_authority` or it is dropped.
+- **Never used:** final value, winner, contract date, or any other field that appears after award.
+- **Not available:** the award criterion, because notices after 2022 do not carry it.
 
 ### Training and evaluation
 
 | Step | Period | Role |
 |---|---|---|
-| Training | 2016–2019 | Fit models and tune parameters |
-| Validation | 2020 | Choose the final variant |
-| Final fit | 2016–2020 | The model that is kept |
-| Test | 2021 | Run once, at the end |
+| Training | 2016–2020 | Fit models and tune parameters |
+| Validation | 2021 | Choose the final variant |
+| Final fit | 2016–2021 | Used for the test run and for later scores |
+| Test | 2022 Q2–Q4 | Run once, at the end |
 
-- **Variants compared:** a mean rate by CPV group and procedure type, logistic regression, and LightGBM. On the 2020 validation data, LightGBM is chosen only if its PR-AUC is at least 0.02 higher than logistic regression and its calibration is no worse. The same rule applies between logistic regression and the mean rate.
+- **Time split:** each unit belongs to the period of its first appearance, so a republished contract cannot reach both training and test.
+- **Variants compared:** a mean rate by CPV group and procedure type, logistic regression, and LightGBM. On the 2021 validation data, LightGBM is chosen only if its PR-AUC is at least 0.02 higher than logistic regression and its calibration is no worse. The same rule applies between logistic regression and the mean rate.
 - **Metrics:** PR-AUC, because single-offer cases are the minority, and calibration, because a predicted 30% should mean about 30% in reality.
 - **No fixed performance threshold.** If the model does not beat the simple mean, that result is published and the simple variant stays.
-- **No periodic retraining.** No new labels exist after 2021 in the files checked, so the model is trained once and versioned. Monthly runs only score and monitor.
+- **No periodic retraining.** No new labels exist after 2022, so the model is trained once and versioned. Monthly runs only score and monitor.
 
 ### Outputs
 
-- **Up to 2021:** the difference between actual and expected single-offer rates by authority. Only authorities with at least 30 procedures appear, each with a confidence interval.
-- **From 2022:** estimated risk only, visibly marked as unvalidated. Scores are computed from initiation notices, before award.
-- **Monitoring:** accuracy cannot be measured after 2021. Input drift against the training data is tracked with PSI, and the dashboard shows a warning when PSI exceeds 0.25 on any feature.
+- **Up to 2022:** the difference between actual and expected single-offer rates by authority. Only authorities with at least 30 units appear, each with a confidence interval.
+- **From 2023:** estimated risk only, visibly marked as unvalidated. Scores are computed from initiation notices, before award.
+- **Monitoring:** accuracy cannot be measured after 2022. Input drift against the training data is tracked with PSI, and the dashboard shows a warning when PSI exceeds 0.25 on any feature.
 
 ### Fallback
 
-Training uses contract files, while scoring from 2022 uses initiation notices. If the fields do not mean the same thing in both, the feature set shrinks. If that is not enough, scores after 2021 are dropped and the model stays historical only.
+Training uses contract files, while scoring from 2023 uses initiation notices. On 106,122 joined procedures from the labelled years, estimated values and CPV codes match almost completely, but this cannot be tested after 2022, because contract files no longer carry the estimate. If PSI shows a lasting break, the feature set shrinks. If that is not enough, scores after 2022 are dropped and the model stays historical only.
 
 ### Public wording
 
@@ -223,13 +204,15 @@ The dashboard receives new data only if every check has passed. Otherwise it sta
 |---|---|---|
 | Ingestion | Portal does not respond | Retries with increasing delays, then a visible failure in Airflow |
 | Ingestion | File extension does not match content | File type is detected from content, not from its name |
+| Ingestion | File known to be wrong | A list in code excludes it or replaces it with a correct version, with the reason recorded |
 | Ingestion | File republished with new content | New hash, so that quarter is replaced and the change is logged |
 | Standardization | Unknown column | File is quarantined with an alert, and other files continue |
-| Standardization | Unreadable rows | Rows go to a rejects table with a reason. Above 1% rejected rows, the file fails |
+| Standardization | Unreadable, malformed or junk rows | Rows go to a rejects table with a reason. Above 1% rejected rows, the file fails |
+| Standardization | File dates fall outside its period | Warning for review. Files before 2018 Q2 legitimately hold some earlier dates |
 | dbt | Test failure | Publishing stops |
 | Model | PSI exceeds 0.25 on any feature | Scores are published with a warning |
 
-The 1% threshold is a starting value, to be adjusted after seeing the full data. Older files may need a separate rule once their encoding is handled.
+The 1% threshold is a starting value. In the validated data, no file came near it: 31 rows were rejected and 9 were malformed across all files.
 
 ## 8. Cost controls
 
@@ -243,15 +226,15 @@ The 1% threshold is a starting value, to be adjusted after seeing the full data.
 **In GitHub Actions, with no AWS cost**
 
 - Parsers: one test per format generation, on small samples from real files.
-- Logic: tax code normalization, hashing and file type detection.
-- Leakage: authority history uses no future data, and no post-award field reaches the model.
+- Logic: tax code normalization, date inference, hashing and file type detection.
+- Leakage: authority history uses no future data, no post-award field reaches the model, and no unit appears on both sides of the time split.
 - Static checks: Airflow DAGs load, the dbt project compiles and `terraform validate` passes.
 
 **On data, in every pipeline run**
 
 - dbt: unique keys, required fields and relationships between tables.
-- Reconciliation: rows in raw files must be found in final tables or in the rejects table.
-- Domain rules: bid count is `NULL` after 2021, and framework values stay out of "contracted value".
+- Reconciliation: rows in raw files must be found in final tables, in the rejects table or among removed republications.
+- Domain rules: bid count is `NULL` for 2022 Q1 and from 2023 onwards, and framework ceilings stay out of contracted value.
 
 **Once, before the full load**
 
@@ -259,29 +242,20 @@ The 1% threshold is a starting value, to be adjusted after seeing the full data.
 
 ## 10. Build order
 
-1. **Data validation:** settle the open data questions below before any modelling.
-2. **Complete warehouse:** ingestion, standardization, dbt and Terraform.
+1. **Data validation:** done. See the [report](../../data-validation.md).
+2. **Complete warehouse:** standardization and dbt run locally on DuckDB. Still to do: moving dbt to Athena, Airflow and Terraform.
 3. **Public dashboard:** the first point where the project is complete enough to go on the CV.
 4. **ML model:** training, evaluation and scores.
 5. **Polish:** README, diagram, Airflow screenshots and main findings.
 
 ## 11. Open questions
 
-These are unconfirmed and must be settled at the stage shown.
-
 | Question | Stage | If the answer is bad |
 |---|---|---|
-| What are the unique keys in each format generation? | 1 | Keys differ by generation, with a generation column |
-| Does the bid count apply to the contract, the lot or the procedure? | 1 | The model and `fct_procedures` use the contract as the unit |
-| Can old numeric notice IDs link to `CN...` IDs, and when did the format change? | 1 | Each generation stays separate, with no cross-generation history |
-| Is the bid count really absent from all files after 2021, including 2025? | 1 | If it is present anywhere, extend labels and revisit the test period |
-| Can county be recovered for the older contract files? | 1 | County stays `NULL` there, and county views start later |
-| Do contract and notice fields align for scoring? | 4 | Fallback in section 6 |
 | Which EC2 instance type is available on the free plan, and at what hourly cost? | 2 | Reduce instance size or the time the instance runs |
 | Does dbt-athena support the incremental loads needed, with Iceberg? | 2 | Rebuild tables instead of loading incrementally |
+| What are the licences of the other years' datasets? | 2, before publishing | Adjust the attribution or what gets republished |
 | Does the exported Parquet file fit on Streamlit Community Cloud? | 3 | Reduce the export to aggregates |
-| What is the licence of the data.gov.ro datasets? | 1, before publishing | Adjust the attribution or what gets republished |
-| How large is the full dataset? | 1 | Reconsider storage and query limits |
 
 ## 12. Sources
 

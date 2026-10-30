@@ -1,0 +1,15 @@
+# Data access
+requests
+
+# Data processing
+# 2.2 added the calamine engine, used to read .xls, .xlsx and .ods files.
+pandas>=2.2
+python-calamine
+pyarrow
+
+# Warehouse: DuckDB locally. The Athena adapter comes with the cloud stage.
+dbt-duckdb
+
+# Tests
+pytest
+openpyxl

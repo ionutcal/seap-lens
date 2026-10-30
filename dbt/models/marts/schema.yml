@@ -1,0 +1,33 @@
+version: 2
+models:
+  - name: fct_awards
+    columns:
+      - name: award_key
+        tests: [unique, not_null]
+      - name: award_notice_id
+        tests: [not_null]
+      - name: value_kind
+        tests:
+          - accepted_values:
+              arguments:
+                values: [framework_ceiling, subsequent_contract, standalone_contract, not_published]
+  - name: fct_contract_competition
+    columns:
+      - name: contract_key
+        tests: [unique, not_null]
+  - name: fct_procedures
+    columns:
+      - name: notice_id
+        tests: [unique, not_null]
+  - name: dim_authority
+    columns:
+      - name: authority_cui
+        tests: [unique, not_null]
+  - name: dim_supplier
+    columns:
+      - name: supplier_cui
+        tests: [unique, not_null]
+  - name: dim_cpv
+    columns:
+      - name: cpv_code
+        tests: [unique, not_null]
