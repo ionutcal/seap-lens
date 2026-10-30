@@ -10,6 +10,7 @@ import pandas as pd
 DEFAULT_DATA_DIR = Path(__file__).parent / "data"
 # Below this, a share moves too much by chance to compare groups.
 MIN_CONTRACTS = 100
+MIN_AUTHORITY_CONTRACTS = 30
 # Long labels leave no room for the bars on a phone.
 MAX_LABEL_LENGTH = 32
 
@@ -75,3 +76,25 @@ def period_share(frame: pd.DataFrame, first_year: int, last_year: int) -> float:
 
 def yearly_contracted_value(value: pd.DataFrame) -> pd.DataFrame:
     return value.groupby("year", as_index=False)[["contracted_value_ron", "contracts", "suspect_contracts"]].sum()
+
+
+def load_model_results() -> dict:
+    return json.loads((data_dir() / "model_results.json").read_text())
+
+
+def compare_with_expected(rows: pd.DataFrame) -> dict | None:
+    """Compare one authority's single offers with what the model expected, on contracts it hadn't seen."""
+    contracts = int(rows.contracts.sum())
+    if contracts < MIN_AUTHORITY_CONTRACTS:
+        return None
+    actual = float(rows.single_offer_contracts.sum())
+    low, high = wilson_interval(actual, contracts)
+    expected = float(rows.expected_single_offers.sum()) / contracts
+    return {
+        "contracts": contracts,
+        "actual": actual / contracts,
+        "expected": expected,
+        "low": low,
+        "high": high,
+        "reading": "above" if low > expected else "below" if high < expected else "in line with",
+    }

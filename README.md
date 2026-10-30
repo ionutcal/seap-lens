@@ -8,10 +8,11 @@ A data warehouse, public dashboard and ML model built on Romanian public procure
 
 ## Status
 
-Work in progress. The data has been validated across all files from 2016 to 2026 Q3, the warehouse builds locally on DuckDB, and the dashboard is public. The ML model and the move to AWS are still to come.
+Work in progress. The data has been validated across all files from 2016 to 2026 Q3, the warehouse builds locally on DuckDB, and the dashboard is public. The model is trained, tested and shown in the dashboard. The move to AWS is still to come.
 
 - [Design spec](docs/superpowers/specs/2026-10-30-seap-lens-design.md)
 - [Data validation report](docs/data-validation.md)
+- [Model results](docs/model-results.md)
 
 ## Run locally
 
@@ -37,6 +38,15 @@ Run the dashboard, which reads the extract committed in `dashboard/data`:
 ```
 
 After rebuilding the warehouse, refresh that extract with `.venv/bin/python -m scripts.export_dashboard`.
+
+Train and test the model, on macOS after `brew install libomp`. The test runs only once, and its result is committed:
+
+```bash
+.venv/bin/pip install -r requirements-ml.txt
+.venv/bin/python -m scripts.train_model validate
+.venv/bin/python -m scripts.train_model test
+.venv/bin/python -m scripts.train_model score
+```
 
 Files that can't be used as published are listed in `src/catalog.py`, and the reasons are in the [validation report](docs/data-validation.md).
 

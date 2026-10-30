@@ -1,0 +1,27 @@
+{
+ "selected": "logistic",
+ "parameters": {
+  "C": 0.1
+ },
+ "train_rows": 483765,
+ "model": {
+  "rows": 72569,
+  "base_rate": 0.28683046479901886,
+  "pr_auc": 0.45103988541087114,
+  "calibration_error": 0.015040069341766384,
+  "brier": 0.18883311167087644,
+  "pr_auc_per_procedure": 0.5408491561640607,
+  "procedures": 20003,
+  "pr_auc_low": 0.434325768117615,
+  "pr_auc_high": 0.46427150567757863
+ },
+ "baseline": {
+  "rows": 72569,
+  "base_rate": 0.28683046479901886,
+  "pr_auc": 0.4051978445407408,
+  "calibration_error": 0.019065351069815092,
+  "brier": 0.19427843673435682,
+  "pr_auc_per_procedure": 0.5066063270013766,
+  "procedures": 20003
+ }
+}

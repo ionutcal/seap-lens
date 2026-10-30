@@ -128,3 +128,26 @@ def contracted_value_figure(value: pd.DataFrame, partial_year: int | None) -> go
         fig.update_xaxes(tickvals=[str(y) for y in sorted(value.year.unique())],
                          ticktext=[f"{y} (partial)" if y == partial_year else str(y) for y in sorted(value.year.unique())])
     return fig
+
+
+def calibration_figure(calibration: pd.DataFrame) -> go.Figure:
+    """Actual rate against predicted rate, where the dotted line means a perfectly calibrated model."""
+    fig = go.Figure()
+    fig.add_trace(
+        go.Scatter(
+            x=[0, 1], y=[0, 100], mode="lines", name="Perfect calibration", hoverinfo="skip",
+            line=dict(color=INK_MUTED, width=1, dash="dot"),
+        )
+    )
+    fig.add_trace(
+        go.Scatter(
+            x=calibration.predicted, y=calibration.actual * 100, mode="lines+markers", name="Model on 2022",
+            line=dict(color=BLUE, width=2), marker=dict(size=9, color=BLUE, line=dict(color=SURFACE, width=2)),
+            customdata=calibration.contracts,
+            hovertemplate="Predicted %{x:.0%}: actually %{y:.1f}% of %{customdata:,} contracts<extra></extra>",
+        )
+    )
+    _theme(fig, height=360)
+    fig.update_xaxes(title_text="Predicted probability", tickformat=".0%", range=[0, 1], showgrid=True, gridcolor=GRID)
+    fig.update_yaxes(title_text="Contracts with one offer (%)", range=[0, 100])
+    return fig
