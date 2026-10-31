@@ -5,7 +5,8 @@ import pandas as pd
 import pytest
 from streamlit.testing.v1 import AppTest
 
-from dashboard.data import MIN_AUTHORITY_CONTRACTS, MIN_CONTRACTS, compare_with_expected, period_share, segment_competition, shorten, wilson_interval, yearly_competition
+from dashboard.charts import segment_bars_html
+from dashboard.data import MIN_AUTHORITY_CONTRACTS, MIN_CONTRACTS, compare_with_expected, period_share, segment_competition, wilson_interval, yearly_competition
 
 APP = str(Path(__file__).parent.parent / "dashboard" / "app.py")
 
@@ -23,9 +24,33 @@ def test_wilson_interval_of_no_contracts_is_undefined():
     assert all(math.isnan(bound) for bound in wilson_interval(0, 0))
 
 
-def test_long_labels_are_cut_at_a_word_with_an_ellipsis():
-    assert shorten("Servicii de transport (cu exceptia transportului de deseuri)") == "Servicii de transport (cu…"
-    assert shorten("Produse chimice") == "Produse chimice"
+def segments(*rows):
+    return pd.DataFrame(rows, columns=["name", "contracts", "single_offer_share", "share_low", "share_high"])
+
+
+def test_bars_show_the_whole_name_however_long_it_is():
+    name = "Mobila (inclusiv mobila de birou), accesorii de mobilier, aparate de uz casnic si produse de curatat"
+    html = segment_bars_html(segments((name, 200, 0.5, 0.4, 0.6)), "name", 0.25)
+    assert f">{name}<" in html
+    assert "…" not in html
+
+
+def test_hovering_over_a_bar_gives_its_contracts_and_interval():
+    html = segment_bars_html(segments(("Cluj", 2000, 0.5, 0.4, 0.6)), "name", 0.25)
+    assert 'title="Cluj: 50.0% of 2,000 contracts. 95% interval: 40.0–60.0%"' in html
+
+
+def test_names_are_escaped_so_they_cant_break_the_page():
+    html = segment_bars_html(segments(('A<b>"x"', 200, 0.5, 0.4, 0.6)), "name", 0.25)
+    assert "A<b>" not in html
+    assert "A&lt;b&gt;" in html
+
+
+def test_longest_bar_fills_the_scale_and_the_marker_is_proportional():
+    html = segment_bars_html(segments(("A", 200, 0.5, 0.4, 0.6), ("B", 200, 0.25, 0.2, 0.3)), "name", 0.25)
+    assert "width:100.00%" in html
+    assert "width:50.00%" in html
+    assert "left:50.00%" in html
 
 
 def frame(rows):

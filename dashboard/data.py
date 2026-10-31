@@ -11,15 +11,6 @@ DEFAULT_DATA_DIR = Path(__file__).parent / "data"
 # Below this, a share moves too much by chance to compare groups.
 MIN_CONTRACTS = 100
 MIN_AUTHORITY_CONTRACTS = 30
-# Long labels leave no room for the bars on a phone.
-MAX_LABEL_LENGTH = 32
-
-
-def shorten(label: str) -> str:
-    """Cut a long label at a word boundary. Tables keep the full name."""
-    if len(label) <= MAX_LABEL_LENGTH:
-        return label
-    return label[:MAX_LABEL_LENGTH].rsplit(" ", 1)[0].rstrip(" ,;") + "…"
 
 
 def data_dir() -> Path:

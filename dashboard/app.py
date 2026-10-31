@@ -122,7 +122,6 @@ def competition() -> None:
     cpv_names = by_cpv.dropna(subset=["cpv_group_name"]).drop_duplicates("cpv_group").set_index("cpv_group").cpv_group_name
     cpv = data.segment_competition(by_cpv, "cpv_group", first_year, last_year)
     cpv["category"] = cpv.cpv_group.map(cpv_names).fillna("Group " + cpv.cpv_group)
-    cpv["label"] = cpv.category.map(data.shorten)
 
     st.markdown("#### By type of purchase")
     if not cpv.empty:
@@ -131,7 +130,7 @@ def competition() -> None:
             f"**{top.category}** has the highest share, at {top.single_offer_share * 100:.1f}% "
             f"of {top.contracts:,} contracts."
         )
-    plot(charts.segment_bars_figure(cpv, "label", national))
+    st.html(charts.segment_bars_html(cpv, "category", national))
     st.caption(
         f"Top-level CPV groups, named as in the source. Groups under {data.MIN_CONTRACTS} contracts are left out. "
         "Shares count contracts, so one large procedure with many contracts can move a group."
@@ -140,7 +139,7 @@ def competition() -> None:
 
     st.markdown("#### By county of the contracting authority")
     county = data.segment_competition(by_county, "county", first_year, last_year)
-    plot(charts.segment_bars_figure(county, "county", national))
+    st.html(charts.segment_bars_html(county, "county", national))
     st.caption("County comes from the authority's earlier notices. Differences between counties also reflect what they buy.")
     table_view(county[["county", "contracts", "single_offer_share", "share_low", "share_high"]])
 
@@ -282,7 +281,7 @@ def spending(metadata: dict) -> None:
     county = middle.selectbox("County", sorted(in_year.county.unique()))
     in_county = in_year[in_year.county == county]
     groups = in_county.drop_duplicates("cpv_group").sort_values("cpv_group")
-    labels = {row.cpv_group: data.shorten(f"{row.cpv_group} {row.cpv_group_name or ''}") for row in groups.itertuples()}
+    labels = {row.cpv_group: f"{row.cpv_group} {row.cpv_group_name or ''}" for row in groups.itertuples()}
     group = right.selectbox("Type of purchase", list(labels), format_func=labels.get)
     top = in_county[in_county.cpv_group == group].sort_values("supplier_rank")
     st.dataframe(readable(top[["supplier_rank", "supplier_name", "value_ron", "market_share"]]), hide_index=True, width="stretch")
