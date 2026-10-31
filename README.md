@@ -15,7 +15,7 @@ Single-offer share by type of purchase, with the national share as a reference:
 
 ![Bars of single-offer share by type of purchase](docs/images/competition.png)
 
-The model on a 2022 test it ran on once, with predicted rates against actual rates:
+The model on the 2022 test, which ran only once, with predicted rates against actual rates:
 
 ![Model results and calibration on the 2022 test](docs/images/model.png)
 
