@@ -5,3 +5,13 @@ seap_lens:
       type: duckdb
       path: "{{ env_var('SEAP_DB', '../data/warehouse.duckdb') }}"
       threads: 4
+    athena:
+      type: athena
+      region_name: "{{ env_var('AWS_REGION', 'eu-central-1') }}"
+      database: awsdatacatalog
+      schema: "{{ env_var('SEAP_DBT_SCHEMA', 'seap_lens_marts') }}"
+      s3_staging_dir: "s3://{{ env_var('SEAP_BUCKET', 'unset') }}/athena-results/"
+      s3_data_dir: "s3://{{ env_var('SEAP_BUCKET', 'unset') }}/marts/"
+      s3_data_naming: schema_table
+      work_group: "{{ env_var('SEAP_WORKGROUP', 'seap-lens') }}"
+      threads: 4

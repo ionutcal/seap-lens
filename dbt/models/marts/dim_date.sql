@@ -3,4 +3,4 @@ select
     year(day) as year,
     quarter(day) as quarter,
     month(day) as month
-from generate_series(date '2014-01-01', date '2030-12-31', interval 1 day) as days(day)
+from {{ date_spine('2014-01-01', '2030-12-31') }}

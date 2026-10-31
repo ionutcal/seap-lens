@@ -18,9 +18,17 @@ def target_path(resource: Resource) -> Path:
     return RAW_DIR / resource.kind / f"{resource.year}_{resource.period}_{resource.filename}"
 
 
-def download(resource: Resource) -> dict:
-    path = target_path(resource)
+def needs_download(resource: Resource, path: Path, previous: dict) -> bool:
+    """Fetch a file that is missing, or that the portal says changed since the last run."""
     if not path.exists():
+        return True
+    known = previous.get(str(path), {}).get("modified", "")
+    return bool(known) and known != resource.modified
+
+
+def download(resource: Resource, previous: dict) -> dict:
+    path = target_path(resource)
+    if needs_download(resource, path, previous):
         path.parent.mkdir(parents=True, exist_ok=True)
         partial = path.with_suffix(path.suffix + ".part")
         for attempt in range(1, ATTEMPTS + 1):
@@ -46,6 +54,7 @@ def row(resource: Resource, path: Path) -> dict:
         "kind": resource.kind,
         "period": resource.period,
         "name": resource.name,
+        "modified": resource.modified,
         "url": resource.url,
         "path": str(path),
         "bytes": path.stat().st_size if exists else "",
@@ -56,9 +65,13 @@ def row(resource: Resource, path: Path) -> dict:
 def main() -> None:
     resources = fetch_catalog()
     print(f"{len(resources)} files in scope", flush=True)
+    previous = {}
+    if MANIFEST.exists():
+        with MANIFEST.open() as handle:
+            previous = {row["path"]: row for row in csv.DictReader(handle)}
     with ThreadPoolExecutor(max_workers=4) as pool:
         rows = []
-        for result in pool.map(download, resources):
+        for result in pool.map(lambda resource: download(resource, previous), resources):
             rows.append(result)
             print(result["path"], result["bytes"], result["status"], flush=True)
     RAW_DIR.mkdir(parents=True, exist_ok=True)

@@ -15,5 +15,28 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
-      - run: pip install -r requirements.txt -r requirements-ml.txt
+      - run: pip install -r requirements.txt -r requirements-ml.txt -r requirements-cloud.txt
       - run: python -m pytest -q
+
+  infrastructure:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - run: terraform -chdir=infra/terraform fmt -check
+      - run: terraform -chdir=infra/terraform init -backend=false -input=false
+      - run: terraform -chdir=infra/terraform validate
+      - run: docker build -f infra/airflow/Dockerfile -t seap-lens-airflow .
+      - name: The DAG loads inside the image
+        run: |
+          docker run --rm seap-lens-airflow python -c "
+          from airflow.dag_processing.dagbag import DagBag
+          bag = DagBag('/opt/airflow/dags')
+          assert not bag.import_errors, bag.import_errors
+          assert 'seap_monthly' in bag.dags
+          print(sorted(task.task_id for task in bag.dags['seap_monthly'].tasks))
+          "
+      - name: Compose file is valid
+        run: |
+          printf 'SEAP_BUCKET=x\nAWS_REGION=x\nAIRFLOW_JWT_SECRET=x\nPOSTGRES_PASSWORD=x\n' > infra/airflow/.env
+          docker compose -f infra/airflow/docker-compose.yml config --quiet

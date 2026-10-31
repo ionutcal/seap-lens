@@ -2,11 +2,11 @@
 
 import datetime as dt
 import json
-import os
 from pathlib import Path
 
-import duckdb
 import pandas as pd
+
+from src.warehouse import query
 
 ROOT = Path(__file__).resolve().parent.parent
 OUTPUT = ROOT / "dashboard" / "data"
@@ -53,6 +53,11 @@ COUNTS = {
 }
 
 
+def _single_value(sql: str):
+    value = query(sql).iloc[0, 0]
+    return value.item() if hasattr(value, "item") else value
+
+
 def out_of_sample_predictions() -> pd.DataFrame:
     """Predictions for contracts each model had not seen: 2021 from validation, 2022 from the test."""
     selected = json.loads((RESULTS_DIR / "validation_result.json").read_text())["selected"]
@@ -92,12 +97,9 @@ def export_model_results() -> None:
 def main() -> None:
     OUTPUT.mkdir(parents=True, exist_ok=True)
     export_model_results()
-    # Staging views read Parquet through paths relative to the dbt folder.
-    os.chdir("dbt")
-    connection = duckdb.connect("../data/warehouse.duckdb", read_only=True)
-    for name, query in QUERIES.items():
-        connection.execute(f"copy ({query}) to '{OUTPUT / name}.parquet' (format parquet, compression zstd)")
-    metadata = {name: connection.execute(query).fetchone()[0] for name, query in COUNTS.items()}
+    for name, sql in QUERIES.items():
+        query(sql).to_parquet(OUTPUT / f"{name}.parquet", index=False, compression="zstd")
+    metadata = {name: _single_value(sql) for name, sql in COUNTS.items()}
     metadata["exported_on"] = dt.date.today().isoformat()
     (OUTPUT / "metadata.json").write_text(json.dumps(metadata, indent=1) + "\n")
     print(metadata)

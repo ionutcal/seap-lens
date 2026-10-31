@@ -20,6 +20,6 @@ latest as (
     where file_order = latest_file_order
 )
 
-select * exclude (value_rank, latest_file_order), latest_file_order
+select *
 from latest
 where value_rank = 1

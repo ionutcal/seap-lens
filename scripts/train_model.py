@@ -9,7 +9,6 @@ import json
 import sys
 from pathlib import Path
 
-import duckdb
 import joblib
 import mlflow
 import pandas as pd
@@ -20,8 +19,8 @@ from src.model_evaluation import (
 )
 from src.model_features import CATEGORICAL_FEATURES, FEATURES, NUMERIC_FEATURES, assign_periods, build_features
 from src.model_variants import SEARCH_SPACE, VARIANT_ORDER, VARIANTS
+from src.warehouse import query
 
-WAREHOUSE = "data/warehouse.duckdb"
 MODEL_DIR = Path("data/model")
 RESULTS_DIR = Path("docs/model")
 VALIDATION_RESULT = RESULTS_DIR / "validation_result.json"
@@ -33,8 +32,7 @@ TUNING_PERIOD = 2020
 
 
 def load_units() -> pd.DataFrame:
-    connection = duckdb.connect(WAREHOUSE, read_only=True)
-    units = connection.execute("select * from ml_contract_units").df()
+    units = query("select * from ml_contract_units")
     events = units[["authority_cui", "award_notice_date", "is_single_offer"]]
     excluded = int(units.publication_date.isna().sum())
     units = units[units.publication_date.notna()].reset_index(drop=True)
@@ -128,7 +126,7 @@ def score() -> None:
     model = joblib.load(MODEL_DIR / "final_model.joblib")
     units = load_units()
     train = units[units.period < TEST_PERIOD]
-    notices = duckdb.connect(WAREHOUSE, read_only=True).execute("select * from ml_scoring_notices").df()
+    notices = query("select * from ml_scoring_notices")
     notices = notices[notices.publication_date.notna()].reset_index(drop=True)
     events = units[["authority_cui", "award_notice_date", "is_single_offer"]]
     scored = build_features(notices, events)

@@ -8,11 +8,12 @@ A data warehouse, public dashboard and ML model built on Romanian public procure
 
 ## Status
 
-Work in progress. The data has been validated across all files from 2016 to 2026 Q3, the warehouse builds locally on DuckDB, and the dashboard is public. The model is trained, tested and shown in the dashboard. The move to AWS is still to come.
+Work in progress. The data has been validated across all files from 2016 to 2026 Q3, the warehouse builds locally on DuckDB, and the dashboard is public. The model is trained, tested and shown in the dashboard. The AWS code is written and validated, but hasn't run on AWS yet.
 
 - [Design spec](docs/superpowers/specs/2026-10-30-seap-lens-design.md)
 - [Data validation report](docs/data-validation.md)
 - [Model results](docs/model-results.md)
+- [AWS runbook](docs/aws-setup.md)
 
 ## Run locally
 

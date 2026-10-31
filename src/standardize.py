@@ -86,4 +86,6 @@ def save_parquet(frame: pd.DataFrame, path: Path) -> None:
     """Write rows with text columns typed as strings, even when a column is entirely empty."""
     path.parent.mkdir(parents=True, exist_ok=True)
     frame.attrs = {}
-    frame.astype({column: "string" for column in frame.columns if frame[column].dtype == object}).to_parquet(path, index=False)
+    frame.astype({column: "string" for column in frame.columns if frame[column].dtype == object}).to_parquet(
+        path, index=False, coerce_timestamps="us", allow_truncated_timestamps=True
+    )

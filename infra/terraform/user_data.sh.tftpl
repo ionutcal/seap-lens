@@ -1,0 +1,49 @@
+#!/bin/bash
+# Runs once, on first boot. It prepares the instance, and the service below runs on every boot.
+set -euxo pipefail
+
+dnf install -y docker git
+systemctl enable --now docker
+mkdir -p /usr/local/lib/docker/cli-plugins
+curl -fsSL -o /usr/local/lib/docker/cli-plugins/docker-compose \
+  https://github.com/docker/compose/releases/download/v2.32.4/docker-compose-linux-x86_64
+chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+
+git clone ${repository_url} /opt/seap-lens
+cat > /opt/seap-lens/infra/airflow/.env <<ENV
+SEAP_BUCKET=${bucket}
+AWS_REGION=${region}
+AIRFLOW_JWT_SECRET=$(openssl rand -hex 32)
+POSTGRES_PASSWORD=$(openssl rand -hex 16)
+ENV
+chmod 600 /opt/seap-lens/infra/airflow/.env
+
+cat > /etc/systemd/system/seap-lens-guard.service <<UNIT
+[Unit]
+Description=Stop the instance after 4 hours, whatever else happens
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/shutdown -h +240 "SEAP Lens stop guard"
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+cat > /etc/systemd/system/seap-lens.service <<UNIT
+[Unit]
+Description=SEAP Lens pipeline
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/seap-lens/infra/airflow/run_on_boot.sh
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+
+systemctl daemon-reload
+systemctl enable --now seap-lens-guard.service
+systemctl enable --now seap-lens.service

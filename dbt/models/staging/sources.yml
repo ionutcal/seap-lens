@@ -2,6 +2,8 @@ version: 2
 sources:
   - name: standard
     description: Typed Parquet files written by scripts/standardize_all.py.
+    # On Athena these are Glue tables created by Terraform. Locally they are the Parquet files below.
+    schema: "{{ env_var('SEAP_GLUE_DATABASE', 'seap_lens_standard') if target.type == 'athena' else target.schema }}"
     tables:
       - name: contracts
         meta:
