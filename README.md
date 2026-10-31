@@ -4,7 +4,22 @@ A data warehouse, public dashboard and ML model built on Romanian public procure
 
 **This is an independent project, with no official link to SEAP, SICAP or any Romanian public authority.**
 
-**Live dashboard: [seap-lens.streamlit.app](https://seap-lens.streamlit.app/)**
+**Live dashboard: [seap-lens.streamlit.app](https://seap-lens.streamlit.app/)**. It sleeps when nobody has visited for a while, so it may ask you to wake it up, which takes about a minute.
+
+![Share of contracts with one offer by year, about one in four in 2021–2022](docs/images/overview.png)
+
+<details>
+<summary>More screens</summary>
+
+Single-offer share by type of purchase, with the national share as a reference:
+
+![Bars of single-offer share by type of purchase](docs/images/competition.png)
+
+The model on the 2022 test, which ran only once, with predicted rates against actual rates:
+
+![Model results and calibration on the 2022 test](docs/images/model.png)
+
+</details>
 
 ## Status
 
