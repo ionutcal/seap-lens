@@ -2,6 +2,7 @@
 
 import csv
 import json
+import os
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
@@ -55,7 +56,8 @@ def main() -> None:
     with MANIFEST.open() as handle:
         entries = list(csv.DictReader(handle))
     failures = []
-    with ProcessPoolExecutor(max_workers=4) as pool:
+    # The largest files take a few GB each, so workers must not outnumber the cores on a small instance.
+    with ProcessPoolExecutor(max_workers=min(4, os.cpu_count() or 1)) as pool:
         results = list(pool.map(process, entries))
     with SUMMARY.open("w") as out:
         for result in results:

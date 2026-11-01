@@ -7,7 +7,7 @@ seap_lens:
       threads: 4
     athena:
       type: athena
-      region_name: "{{ env_var('AWS_REGION', 'eu-central-1') }}"
+      region_name: "{{ env_var('AWS_REGION', 'eu-north-1') }}"
       database: awsdatacatalog
       schema: "{{ env_var('SEAP_DBT_SCHEMA', 'seap_lens_marts') }}"
       s3_staging_dir: "s3://{{ env_var('SEAP_BUCKET', 'unset') }}/athena-results/"

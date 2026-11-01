@@ -27,7 +27,9 @@ select
     contracts.publication_date,
     contracts.estimated_value_ron
 from {{ ref('fct_contract_competition') }} as competition
-inner join contracts using (award_notice_id, contract_number)
+inner join contracts
+    on competition.award_notice_id = contracts.award_notice_id
+    and competition.contract_number = contracts.contract_number
 left join {{ ref('dim_authority') }} as authorities on competition.authority_cui = authorities.authority_cui
 where competition.bid_count is not null
     and not competition.is_without_real_competition

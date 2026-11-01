@@ -46,3 +46,16 @@ def test_compiled_sql_has_no_duckdb_functions(compiled):
     for path in compiled:
         text = path.read_text().lower()
         assert not [token for token in DUCKDB_ONLY if token in text], path.name
+
+
+def test_joins_never_use_using_because_trino_rejects_qualified_columns_after_it(compiled):
+    for path in compiled:
+        assert " using (" not in path.read_text().lower(), path.name
+
+
+def test_export_queries_parse_as_trino_and_avoid_using():
+    from scripts.export_dashboard import COUNTS, QUERIES
+
+    for sql in [*QUERIES.values(), *COUNTS.values()]:
+        sqlglot.parse_one(sql, read="trino")
+        assert " using (" not in sql.lower()

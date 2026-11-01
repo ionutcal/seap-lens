@@ -2,6 +2,13 @@
 # Runs once, on first boot. It prepares the instance, and the service below runs on every boot.
 set -euxo pipefail
 
+# Airflow and the largest files can briefly exceed 8 GB, and running out of memory would kill the run.
+dd if=/dev/zero of=/swapfile bs=1M count=4096
+chmod 600 /swapfile
+mkswap /swapfile
+swapon /swapfile
+echo '/swapfile none swap defaults 0 0' >> /etc/fstab
+
 dnf install -y docker git
 systemctl enable --now docker
 mkdir -p /usr/local/lib/docker/cli-plugins

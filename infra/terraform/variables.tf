@@ -1,7 +1,7 @@
 variable "region" {
-  description = "AWS region for every resource."
+  description = "AWS region for every resource. On the new AWS sign-up the region is fixed, and Europe gets this one."
   type        = string
-  default     = "eu-central-1"
+  default     = "eu-north-1"
 }
 
 variable "alert_email" {
