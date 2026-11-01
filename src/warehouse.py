@@ -32,7 +32,7 @@ def _query_athena(sql: str) -> pd.DataFrame:
 
     connection = connect(
         s3_staging_dir=f"s3://{os.environ['SEAP_BUCKET']}/athena-results/",
-        region_name=os.environ.get("AWS_REGION", "eu-central-1"),
+        region_name=os.environ.get("AWS_REGION", "eu-north-1"),
         work_group=os.environ.get("SEAP_WORKGROUP", "seap-lens"),
         schema_name=os.environ.get("SEAP_DBT_SCHEMA", "seap_lens_marts"),
         cursor_class=PandasCursor,

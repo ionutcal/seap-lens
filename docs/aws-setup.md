@@ -19,8 +19,8 @@ Budget alerts fire at 50% and 80% of the credit.
 
 1. Sign up at [aws.amazon.com/free](https://aws.amazon.com/free/) and choose the **Free plan**.
 2. Turn on multi-factor authentication for the root user.
-3. Create an IAM user for yourself with administrator access and an access key. Don't use the root user's keys.
-4. Check that the Free plan lists Athena, EC2, S3, EventBridge and Budgets, and `m7i-flex.large` in `eu-central-1`.
+3. Create an IAM user with administrator access and an access key for the CLI. On the new sign-up these users work only for programmatic access, which is all this needs.
+4. Find your region at [settings.aws.com](https://settings.aws.com), under **Project → Overview → Additional Info**. On the new sign-up it is fixed by your contact address, and Europe gets `eu-north-1`, which is this project's default. For another region, add `region = "..."` to `terraform.tfvars` in step 2.
 
 Enter the key on your own machine. Never paste it into a chat, a file in this repository, or a commit:
 
@@ -28,7 +28,7 @@ Enter the key on your own machine. Never paste it into a chat, a file in this re
 aws configure
 ```
 
-Use `eu-central-1` as the region, then confirm it works:
+Use your region, then confirm it works:
 
 ```bash
 aws sts get-caller-identity

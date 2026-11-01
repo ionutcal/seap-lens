@@ -26,7 +26,7 @@ QUERIES = {
         select competition.authority_cui, authorities.authority_name, authorities.county,
                competition.year, competition.contracts, competition.single_offer_contracts
         from mart_authority_competition as competition
-        left join dim_authority as authorities using (authority_cui)
+        left join dim_authority as authorities on competition.authority_cui = authorities.authority_cui
         where competition.year >= 2016
     """,
     "contracted_value": "select * from mart_contracted_value where year <= year(current_date)",
@@ -36,7 +36,7 @@ QUERIES = {
                suppliers.supplier_name, concentration.supplier_rank,
                concentration.value_ron, concentration.market_share
         from mart_supplier_concentration as concentration
-        left join dim_supplier as suppliers using (supplier_cui)
+        left join dim_supplier as suppliers on concentration.supplier_cui = suppliers.supplier_cui
         left join dim_cpv as groups
             on groups.cpv_group = concentration.cpv_group and groups.cpv_code like '__000000-%'
         where concentration.county is not null
