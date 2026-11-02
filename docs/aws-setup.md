@@ -77,6 +77,15 @@ Take the screenshots for the README here. To keep the instance on after a run, c
 sudo docker compose -f /opt/seap-lens/infra/airflow/docker-compose.yml exec airflow-scheduler touch /opt/seap/app/data/.hold
 ```
 
+To run the pipeline again in the same month, for example after a fix, remove the monthly marker and reboot. The instance stops after the run, so start it first if needed:
+
+```bash
+aws ssm start-session --target "$(terraform output -raw instance_id)"
+sudo rm /opt/seap-lens/.last_run && sudo reboot
+```
+
+Only stop the instance through the pipeline or the console. `terraform apply` is safe while it's stopped.
+
 ## 4. Publish a new extract
 
 The pipeline writes the extract to S3 and stops there, so a person checks the numbers before the public dashboard changes. From the repository root:

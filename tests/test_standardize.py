@@ -18,6 +18,10 @@ def test_parses_numbers(raw, expected):
     assert parse_number(pd.Series([raw])).iloc[0] == expected
 
 
+def test_whole_numbers_stay_floats_so_every_file_has_the_same_parquet_type():
+    assert parse_number(pd.Series(["1", "2"])).dtype == "float64"
+
+
 @pytest.mark.parametrize("raw", ["NULL", "text", "1,23", "", None])
 def test_other_values_are_not_numbers(raw):
     assert parse_number(pd.Series([raw], dtype="object")).isna().all()

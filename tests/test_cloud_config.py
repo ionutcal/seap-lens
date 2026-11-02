@@ -1,6 +1,7 @@
 """Checks that the cloud configuration agrees with the code, with no AWS account."""
 
 import json
+import subprocess
 from pathlib import Path
 
 import pandas as pd
@@ -24,12 +25,13 @@ def standardized_schema(kind, raw_row, tmp_path):
 
 
 def test_glue_contract_columns_match_what_standardization_writes(tmp_path):
-    row = {"Numar anunt atribuire": "CAN1", "Data anunt atribuire": "2023-01-01 10:00:00", "Tip contract": "Furnizare"}
+    row = {"Numar anunt atribuire": "CAN1", "Data anunt atribuire": "2023-01-01 10:00:00", "Tip contract": "Furnizare",
+           "Numar oferte": "3", "Valoare contract (RON)": "100", "Valoare estimata": "200"}
     assert standardized_schema("contracts", row, tmp_path) == GLUE_COLUMNS["contracts"]
 
 
 def test_glue_notice_columns_match_what_standardization_writes(tmp_path):
-    row = {"Numar anunt initiere": "CN1", "Data publicare": "2023-01-01 10:00:00"}
+    row = {"Numar anunt initiere": "CN1", "Data publicare": "2023-01-01 10:00:00", "Valoare estimata": "5"}
     assert standardized_schema("notices", row, tmp_path) == GLUE_COLUMNS["notices"]
 
 
@@ -39,6 +41,6 @@ def test_every_canonical_column_reaches_glue():
 
 
 def test_nothing_private_is_committed_with_the_terraform_config():
-    terraform = (ROOT / "infra" / "terraform")
-    assert not list(terraform.glob("*.tfvars"))
-    assert not list(terraform.glob("*.tfstate*"))
+    # They exist on the machine that runs Terraform, so what matters is that Git doesn't track them.
+    tracked = subprocess.run(["git", "ls-files"], cwd=ROOT, capture_output=True, text=True, check=True).stdout.split()
+    assert not [path for path in tracked if path.endswith(".tfvars") or ".tfstate" in path]

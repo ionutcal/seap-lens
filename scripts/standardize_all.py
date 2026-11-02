@@ -15,6 +15,8 @@ STANDARD_DIR = Path("data/standard")
 REJECTS_DIR = Path("data/rejects")
 SUMMARY = Path("data/standardize_summary.jsonl")
 MAX_REJECTED_SHARE = 0.01
+# Raise this when the output format changes, so files standardized before the change are redone.
+OUTPUT_VERSION = 2
 
 
 def _unchanged(entry: dict) -> dict | None:
@@ -25,7 +27,8 @@ def _unchanged(entry: dict) -> dict | None:
     with SUMMARY.open() as handle:
         for line in handle:
             earlier = json.loads(line)
-            if earlier.get("sha256") == entry["sha256"] and target.exists():
+            same_file = earlier.get("sha256") == entry["sha256"] and earlier.get("version") == OUTPUT_VERSION
+            if same_file and target.exists():
                 return earlier
     return None
 
@@ -45,7 +48,7 @@ def process(entry: dict) -> dict:
         save_parquet(frame, directory / kind / name)
     total = len(rows) + len(rejects) + malformed
     return {
-        "kind": kind, "year": year, "period": period, "sha256": entry["sha256"], "rows": len(rows),
+        "kind": kind, "year": year, "period": period, "sha256": entry["sha256"], "version": OUTPUT_VERSION, "rows": len(rows),
         "rejected": len(rejects), "malformed": malformed,
         "rejected_share": round((len(rejects) + malformed) / total, 5) if total else 0,
         "reasons": rejects.reject_reason.value_counts().to_dict() if len(rejects) else {},

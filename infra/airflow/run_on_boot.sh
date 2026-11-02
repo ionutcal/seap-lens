@@ -18,8 +18,7 @@ fi
 
 # The DAG takes a moment to appear after Airflow starts.
 for _ in $(seq 1 60); do
-  if docker compose exec -T airflow-scheduler airflow dags unpause seap_monthly; then
-    docker compose exec -T airflow-scheduler airflow dags trigger seap_monthly
+  if docker compose exec -T airflow-scheduler airflow dags trigger seap_monthly; then
     date +%Y-%m > "$marker"
     exit 0
   fi
