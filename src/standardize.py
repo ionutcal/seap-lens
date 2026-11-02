@@ -33,7 +33,8 @@ def parse_number(series: pd.Series) -> pd.Series:
     # Files from 2023 Q4 and 2024 Q2 write 417185 as "417,185".
     thousands = text.str.fullmatch(r"-?\d{1,3}(,\d{3})+(\.\d+)?", na=False)
     text = text.where(~thousands, text.str.replace(",", "", regex=False))
-    return pd.to_numeric(text, errors="coerce")
+    # Always float: Parquet would store a file of whole numbers as INT64, which Athena's schema rejects.
+    return pd.to_numeric(text, errors="coerce").astype("float64")
 
 
 def _strip_float_suffix(series: pd.Series) -> pd.Series:

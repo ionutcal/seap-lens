@@ -1,4 +1,6 @@
 # The move to AWS. Kept apart so the dashboard deployment stays light.
+# Pinned below 1.13, because pip otherwise picks a beta of dbt-core here.
+dbt-core<1.13
 dbt-athena
 pyathena[pandas]
 boto3

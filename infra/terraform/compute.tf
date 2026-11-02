@@ -57,6 +57,7 @@ data "aws_iam_policy_document" "pipeline" {
       "glue:GetDatabase", "glue:GetDatabases", "glue:CreateDatabase", "glue:GetTable", "glue:GetTables",
       "glue:CreateTable", "glue:UpdateTable", "glue:DeleteTable", "glue:BatchDeleteTable", "glue:GetPartition",
       "glue:GetPartitions", "glue:BatchCreatePartition", "glue:BatchDeletePartition",
+      "glue:GetTableVersion", "glue:GetTableVersions", "glue:DeleteTableVersion", "glue:BatchDeleteTableVersion",
     ]
     resources = [
       "arn:aws:glue:${var.region}:${data.aws_caller_identity.current.account_id}:catalog",
@@ -145,7 +146,9 @@ resource "aws_instance" "pipeline" {
   depends_on = [aws_s3_object.model, aws_glue_catalog_table.standard, aws_athena_workgroup.main]
 
   lifecycle {
-    ignore_changes = [ami]
+    # A stopped instance has no public IP, which would otherwise look like a change that
+    # replaces the instance and deletes its disk.
+    ignore_changes = [ami, associate_public_ip_address]
   }
 }
 

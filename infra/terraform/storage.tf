@@ -45,7 +45,8 @@ resource "aws_s3_object" "model" {
   bucket = aws_s3_bucket.data.id
   key    = "model/${each.value}"
   source = "${local.model_directory}/${each.value}"
-  etag   = filemd5("${local.model_directory}/${each.value}")
+  # Not etag: for a large file S3 reports a multipart hash that never matches, so every plan shows a change.
+  source_hash = filemd5("${local.model_directory}/${each.value}")
 }
 
 resource "aws_glue_catalog_database" "standard" {
