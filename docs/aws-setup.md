@@ -1,6 +1,16 @@
 # AWS Runbook
 
-This takes the pipeline from local DuckDB to AWS: S3, Athena, Airflow on EC2, and Terraform. The code has been validated without an account, but **has not yet run on AWS**, so expect to fix some things on the first run.
+This takes the pipeline from local DuckDB to AWS: S3, Athena, Airflow on EC2, and Terraform. It has run end to end on a free plan account in `eu-north-1`.
+
+## Result of the first complete run
+
+The run on 2026-11-02 took about 7 minutes once the image was built, and built all 35 dbt steps on Athena. Its dashboard extract matches the local DuckDB warehouse:
+
+- **Awards, labels and suspect contracts:** the same, at 2,177,330, 557,340 and 1,187.
+- **Competition by county, CPV group and authority:** identical on every row.
+- **Contracted value per year:** the same to one decimal, in billion RON. Contract counts differ by up to 11 and values by up to 3 million RON per row.
+- **Median values:** differ by up to about 18,000 RON, because Athena's median is approximate. Treat Athena's medians as estimates.
+- **Supplier rankings:** one row of 17,918 differs, in a tie or an arbitrary pick.
 
 Create the account only when you can work on this in the following weeks. The free plan ends after six months or when the credits run out, and the account then closes.
 

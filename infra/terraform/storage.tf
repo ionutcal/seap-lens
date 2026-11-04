@@ -89,7 +89,8 @@ resource "aws_athena_workgroup" "main" {
   force_destroy = true
 
   configuration {
-    enforce_workgroup_configuration = true
+    # Enforcing this would put dbt's tables under athena-results/, where they expire after 7 days.
+    enforce_workgroup_configuration = false
     # A full rebuild reads well under 1 GB per query, so this only stops a mistake.
     bytes_scanned_cutoff_per_query = 5 * 1024 * 1024 * 1024
 

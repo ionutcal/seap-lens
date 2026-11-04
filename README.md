@@ -23,7 +23,7 @@ The model on the 2022 test, which ran only once, with predicted rates against ac
 
 ## Status
 
-Work in progress. The data has been validated across all files from 2016 to 2026 Q3, the warehouse builds locally on DuckDB, and the dashboard is public. The model is trained, tested and shown in the dashboard. The AWS code is written and validated, but hasn't run on AWS yet.
+Work in progress. The data has been validated across all files from 2016 to 2026 Q3, the warehouse builds locally on DuckDB, and the dashboard is public. The model is trained, tested and shown in the dashboard. The pipeline has also run end to end on AWS, on S3, Athena and Airflow on EC2, and its results match the local warehouse.
 
 - [Design spec](docs/superpowers/specs/2026-10-30-seap-lens-design.md)
 - [Data validation report](docs/data-validation.md)
