@@ -246,7 +246,7 @@ The 1% threshold is a starting value. In the validated data, no file came near i
 ## 10. Build order
 
 1. **Data validation:** done. See the [report](../../data-validation.md).
-2. **Complete warehouse:** standardization and dbt run locally on DuckDB. The AWS code is written and validated without an account. Still to do: running it on AWS. See the [runbook](../../aws-setup.md).
+2. **Complete warehouse:** standardization and dbt run locally on DuckDB. It has also run end to end on AWS, with results matching the local warehouse. See the [runbook](../../aws-setup.md).
 3. **Public dashboard:** done, at [seap-lens.streamlit.app](https://seap-lens.streamlit.app/), on a 548 KB extract.
 4. **ML model:** done. See the [results](../../model-results.md).
 5. **Polish:** README, diagram, Airflow screenshots and main findings.
@@ -255,8 +255,6 @@ The 1% threshold is a starting value. In the validated data, no file came near i
 
 | Question | Stage | If the answer is bad |
 |---|---|---|
-| What does a real run cost and how long does it take? | 2 | Reduce instance size or the time the instance runs |
-| Does the Athena SQL run, and not only parse? | 2 | Fix the portable macros in `dbt/macros` |
 | Can contracted value be compared with an official figure? No official total was found on 2026-10-30 | 3, before publishing | The dashboard keeps marking totals as unverified estimates |
 
 ## 12. Sources
