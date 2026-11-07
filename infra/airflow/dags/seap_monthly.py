@@ -17,8 +17,13 @@ DBT = "/opt/seap/venv/bin/dbt"
 BUCKET = "s3://$SEAP_BUCKET"
 CLOUD_ENV = "export SEAP_WAREHOUSE=athena; "
 # A hold file lets someone inspect the instance after a run. The boot guard still stops it.
+# Stopping the instance kills this task before it can finish, so Airflow resumes it at the next
+# boot. Only a run that started after this boot may stop the instance, or every boot would end at once.
 STOP_INSTANCE = """
 if [ -f /opt/seap/app/data/.hold ]; then echo "Hold file found, not stopping"; exit 0; fi
+run_started={{ dag_run.start_date.timestamp() | int if dag_run.start_date else 0 }}
+booted=$(( $(date +%s) - $(cut -d. -f1 /proc/uptime) ))
+if [ "$run_started" -lt "$booted" ]; then echo "This run started before the current boot, not stopping"; exit 0; fi
 token=$(curl -fsS -X PUT http://169.254.169.254/latest/api/token -H "X-aws-ec2-metadata-token-ttl-seconds: 60")
 instance=$(curl -fsS -H "X-aws-ec2-metadata-token: $token" http://169.254.169.254/latest/meta-data/instance-id)
 aws ec2 stop-instances --instance-ids "$instance"
