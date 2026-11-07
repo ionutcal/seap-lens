@@ -96,6 +96,13 @@ sudo rm /opt/seap-lens/.last_run && sudo reboot
 
 Only stop the instance through the pipeline or the console. `terraform apply` is safe while it's stopped.
 
+If the instance ever stops right after starting, a stop step left over from an earlier run is the likely cause. Turn on stop protection, start it, mark the old run failed in Airflow, then turn protection off:
+
+```bash
+aws ec2 modify-instance-attribute --instance-id "$(terraform output -raw instance_id)" --disable-api-stop
+aws ec2 modify-instance-attribute --instance-id "$(terraform output -raw instance_id)" --no-disable-api-stop
+```
+
 ## 4. Publish a new extract
 
 The pipeline writes the extract to S3 and stops there, so a person checks the numbers before the public dashboard changes. From the repository root:
