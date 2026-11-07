@@ -40,7 +40,9 @@ resource "aws_s3_bucket_lifecycle_configuration" "data" {
 }
 
 resource "aws_s3_object" "model" {
-  for_each = fileset(local.model_directory, "*")
+  # Only what the pipeline reads. It writes notice_scores.parquet itself, so tracking that here
+  # would show a change after every run.
+  for_each = fileset(local.model_directory, "{final_model.joblib,*_predictions.parquet}")
 
   bucket = aws_s3_bucket.data.id
   key    = "model/${each.value}"
