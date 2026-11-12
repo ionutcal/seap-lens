@@ -19,6 +19,10 @@ The model on the 2022 test, which ran only once, with predicted rates against ac
 
 ![Model results and calibration on the 2022 test](docs/images/model.png)
 
+A monthly run in Airflow on EC2, where every step from download to export passed in under 3 minutes:
+
+![Airflow run of the monthly pipeline with all 11 tasks successful](docs/images/airflow-run.png)
+
 </details>
 
 ## Status
