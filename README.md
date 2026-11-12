@@ -25,9 +25,40 @@ A monthly run in Airflow on EC2, where every step from download to export passed
 
 </details>
 
+## Findings
+
+Shares count contracts with a bid count, leaving out procedures with no real competition. A single offer does not mean wrongdoing: it can come from a highly specialized market.
+
+- **About one in four contracts got a single offer in 2021–2022:** 25.5%, after a peak of 36.2% in 2018. Bid counts stop after 2022, so later years can't be measured.
+- **Some types of purchase stand out.** Health and social care services reached 75.7% of 2,330 contracts in 2021–2022, against 12.3% for clothing and footwear. One large procedure can have many contracts, so a high share can come from a few procedures.
+- **Counties range from 16.2% to 40.6%,** from Olt to Salaj. The gap also reflects what each county buys.
+- **A single offer is partly predictable at publication.** On 2022 contracts the model had never seen, it reached a PR-AUC of 0.451, against 0.405 for a simple average and a base rate of 0.287.
+- **The published data needs care.** One file is truncated, one quarter is a copy of the next, formats change between files, and 7.7% of republished contracts change value. See the [validation report](docs/data-validation.md).
+
+## How it works
+
+```mermaid
+flowchart LR
+    portal[data.gov.ro] --> raw[S3 raw files]
+    raw --> standard[Standardized Parquet]
+    standard --> dbt[dbt models on Athena]
+    dbt --> model[Single-offer model]
+    dbt --> export[Dashboard extract]
+    model --> export
+    export --> dashboard[Streamlit dashboard]
+    airflow[Airflow on EC2, monthly] -.runs.-> raw
+    terraform[Terraform] -.creates.-> raw
+```
+
+- **Standardization** reads 80 files in changing formats, dates and encodings into one schema, and sets aside the rows it rejects.
+- **dbt** keeps only the latest version of republished contracts and builds facts, dimensions and dashboard tables, with data tests. The same models run on DuckDB locally and on Athena in the cloud.
+- **The model** uses only what is known when a notice is published, and a time split that keeps each procedure on one side.
+- **Airflow** runs on an EC2 instance that starts on the 2nd of each month and stops after the run. Terraform creates everything, with no open ports and budget alerts.
+- **The dashboard** reads a small extract outside AWS, so it stays online when the cloud resources are off.
+
 ## Status
 
-Work in progress. The data has been validated across all files from 2016 to 2026 Q3, the warehouse builds locally on DuckDB, and the dashboard is public. The model is trained, tested and shown in the dashboard. The pipeline has also run end to end on AWS, on S3, Athena and Airflow on EC2, and its results match the local warehouse.
+The data has been validated across all files from 2016 to 2026 Q3, and the dashboard is public. The model is trained and tested. The pipeline runs monthly on AWS, on S3, Athena and Airflow on EC2, and its results match the local DuckDB warehouse.
 
 - [Design spec](docs/superpowers/specs/2026-10-30-seap-lens-design.md)
 - [Data validation report](docs/data-validation.md)
