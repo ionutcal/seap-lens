@@ -1,0 +1,7 @@
+version: 2
+models:
+  - name: int_awards_unified
+    description: >
+      One version of each contract: the rows from the latest file that published it, because 7.7%
+      of republished contracts change value. Rows in that file with different values stay, since
+      older files have no lots and one contract number can cover several items.
