@@ -30,6 +30,21 @@ aws ec2 stop-instances --instance-ids "$instance"
 """
 
 
+# The budget alerts topic already has the owner's email subscribed, so run alerts reuse it.
+NOTIFY = """
+account=$(aws sts get-caller-identity --query Account --output text)
+aws sns publish --topic-arn "arn:aws:sns:$AWS_REGION:$account:seap-lens-budget-alerts" --subject "{subject}" --message "{message}"
+"""
+FAILURE_MESSAGE = (
+    "The SEAP Lens run {{ dag_run.run_id }} failed. The dashboard keeps its last good extract. "
+    "The instance stops as usual, and its logs stay in Airflow on the instance. See docs/aws-setup.md."
+)
+SUCCESS_MESSAGE = (
+    "The SEAP Lens run {{ dag_run.run_id }} passed every step. A new dashboard extract is in "
+    "s3://$SEAP_BUCKET/exports/dashboard, ready to review."
+)
+
+
 def step(task_id: str, command: str, **options) -> BashOperator:
     return BashOperator(task_id=task_id, bash_command=f"cd {APP} && {command}", **options)
 
@@ -66,6 +81,19 @@ with DAG(
     stop = BashOperator(
         task_id="stop_instance", bash_command=STOP_INSTANCE, trigger_rule=TriggerRule.ALL_DONE, retries=3,
     )
+    # Runs as soon as any step has failed for good, after its retries.
+    notify_failure = BashOperator(
+        task_id="notify_failure",
+        bash_command=NOTIFY.format(subject="SEAP Lens run failed", message=FAILURE_MESSAGE),
+        trigger_rule=TriggerRule.ONE_FAILED,
+    )
+    notify_success = BashOperator(
+        task_id="notify_success",
+        bash_command=NOTIFY.format(subject="SEAP Lens run succeeded", message=SUCCESS_MESSAGE),
+    )
 
+    pipeline = [download, upload_raw, standardize, upload_standard, build_warehouse, fetch_model, score, export, publish, keep_results]
     download >> upload_raw >> standardize >> upload_standard >> build_warehouse >> fetch_model
-    fetch_model >> score >> export >> publish >> keep_results >> stop
+    fetch_model >> score >> export >> publish >> keep_results >> notify_success
+    pipeline >> notify_failure
+    [notify_success, notify_failure] >> stop
