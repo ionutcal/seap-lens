@@ -1,33 +1,77 @@
 version: 2
 models:
   - name: fct_awards
+    description: >
+      One row per award notice, lot, contract, winner and value, after removing republished
+      copies. The base for every value figure.
     columns:
       - name: award_key
+        description: Hash of the award notice, lot, contract number, winner and value.
         tests: [unique, not_null]
+      - name: contract_year
+        description: Year of the contract date, which totals use instead of the year of the file.
+      - name: is_suspect_value
+        description: >
+          True when the value is zero or negative, above 10 billion RON, or more than 10 times the
+          procedure's estimate. Suspect values stay here but out of totals.
       - name: award_notice_id
         tests: [not_null]
       - name: value_kind
+        description: >
+          framework_ceiling (not spending), subsequent_contract or standalone_contract (real
+          contracts), or not_published for files without that information.
         tests:
           - accepted_values:
               arguments:
                 values: [framework_ceiling, subsequent_contract, standalone_contract, not_published]
   - name: fct_contract_competition
+    description: >
+      One row per award notice and contract number, the level at which offers are counted. Where
+      rows disagree, the highest bid count applies.
     columns:
       - name: contract_key
+        description: Hash of the award notice and contract number.
         tests: [unique, not_null]
+      - name: is_single_offer
+        description: True when the contract received exactly one offer. Null after 2022.
+      - name: is_without_real_competition
+        description: Negotiation procedures, where a single offer is expected, left out of shares and the model.
   - name: fct_procedures
+    description: One row per initiation notice, from its latest file, with the estimate in RON.
     columns:
       - name: notice_id
         tests: [unique, not_null]
   - name: dim_authority
+    description: Contracting authorities by tax code, with the latest known name, type and county.
     columns:
       - name: authority_cui
+        description: Tax code without the RO prefix.
         tests: [unique, not_null]
+      - name: county
+        description: From notices, because contract files carry no county.
   - name: dim_supplier
+    description: Winning suppliers by tax code, with the latest known name and country.
     columns:
       - name: supplier_cui
         tests: [unique, not_null]
   - name: dim_cpv
+    description: CPV purchase codes, with the top-level group as the first two digits.
     columns:
       - name: cpv_code
         tests: [unique, not_null]
+  - name: dim_date
+    description: A calendar from 2014 to 2030.
+  - name: mart_contracted_value
+    description: Real contracts by contract year from 2023, counting joint winners once and leaving out suspect values.
+  - name: mart_authority_competition
+    description: Contracts and single offers by authority and year, for years with bid counts.
+  - name: mart_competition_by_county
+    description: Contracts and single offers by county and year, for years with bid counts.
+  - name: mart_competition_by_cpv
+    description: Contracts and single offers by CPV group and year, for years with bid counts.
+  - name: mart_supplier_concentration
+    description: The five largest suppliers by county, CPV group and year, with their share of value.
+  - name: ml_contract_units
+    description: Labelled contracts with only what was known at publication, for training the model.
+  - name: ml_scoring_notices
+    description: Notices from 2023, when bid counts stopped, scored by the model without validation.

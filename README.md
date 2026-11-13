@@ -64,6 +64,7 @@ The data has been validated across all files from 2016 to 2026 Q3, and the dashb
 - [Data validation report](docs/data-validation.md)
 - [Model results](docs/model-results.md)
 - [AWS runbook](docs/aws-setup.md)
+- [Data model documentation](https://ionutcal.github.io/seap-lens/), with every table, column and test, and the lineage graph
 
 ## Run locally
 

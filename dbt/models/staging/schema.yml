@@ -1,0 +1,17 @@
+version: 2
+models:
+  - name: stg_contracts
+    description: >
+      Every contract row from every standardized file, with trimmed text, typed numbers and a
+      file order that ranks publications in time. Republished rows are still here.
+    columns:
+      - name: file_order
+        description: Year times ten plus the quarter, so later files sort higher.
+      - name: bid_count
+        description: Offers received. Published only until 2022, and null after.
+      - name: concluded_through
+        description: >
+          How the contract was concluded, published from 2023 (and 2022 Q1): a framework
+          ceiling, a contract under a framework, or a standalone contract.
+  - name: stg_notices
+    description: Every initiation notice row, typed and trimmed. From 2026 Q3 there is one row per lot.
