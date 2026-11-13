@@ -61,7 +61,7 @@ terraform plan
 terraform apply
 ```
 
-Confirm the subscription email from AWS, or budget alerts won't arrive.
+Confirm the subscription email from AWS, or neither budget alerts nor run alerts will arrive. Each monthly run sends one email: "SEAP Lens run succeeded" or "SEAP Lens run failed".
 
 `data/model` has to exist locally, because Terraform uploads the trained model from there. The Terraform state stays on your machine and Git ignores it.
 

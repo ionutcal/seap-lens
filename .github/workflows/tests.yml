@@ -34,7 +34,15 @@ jobs:
           bag = DagBag('/opt/airflow/dags')
           assert not bag.import_errors, bag.import_errors
           assert 'seap_monthly' in bag.dags
-          print(sorted(task.task_id for task in bag.dags['seap_monthly'].tasks))
+          dag = bag.dags['seap_monthly']
+          print(sorted(task.task_id for task in dag.tasks))
+          # The instance must stop after the alerts, whatever happened before.
+          stop = dag.get_task('stop_instance')
+          assert stop.trigger_rule == 'all_done', stop.trigger_rule
+          assert stop.upstream_task_ids == {'notify_success', 'notify_failure'}, stop.upstream_task_ids
+          failure = dag.get_task('notify_failure')
+          assert failure.trigger_rule == 'one_failed', failure.trigger_rule
+          assert len(failure.upstream_task_ids) == 10, failure.upstream_task_ids
           "
       - name: Compose file is valid
         run: |

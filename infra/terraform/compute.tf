@@ -67,6 +67,12 @@ data "aws_iam_policy_document" "pipeline" {
   }
 
   statement {
+    sid       = "SendRunAlerts"
+    actions   = ["sns:Publish"]
+    resources = [aws_sns_topic.budget_alerts.arn]
+  }
+
+  statement {
     sid       = "StopItself"
     actions   = ["ec2:StopInstances"]
     resources = ["*"]
